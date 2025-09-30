@@ -57,99 +57,137 @@ export default function EditUserModal({
               {activeTab === 0 && (
                 <div className="">
                   {/* ===== User Profile Section ===== */}
-                  <div className="bg-white p-2 rounded-xl shadow-lg"> {/* Added white background, padding, rounded corners, and shadow */}
-                      <div className="flex flex-row"> {/* Grid for two-column layout */}
-                          {/* Profile Picture */}
-                          <div className="relative w-40 h-40 rounded-xl overflow-hidden bg-gray-100 border border-blue-300">
-                            {editableUser.picture ? (
-                              <img
-                                src={editableUser.picture}
-                                alt="Profile"
-                                className="w-full h-full object-cover"
+                  <div className="bg-white p-4 rounded-xl shadow-sm w-full max-w-4xl mx-auto">
+                    <div className="flex flex-col md:flex-row gap-10">
+                      {/* Left Column: Profile Picture & Actions */}
+                      <div className="flex-shrink-0 flex flex-col items-center w-full md:w-auto">
+                        {/* Profile Picture Box */}
+                        <div className="relative w-40 h-40 rounded-lg bg-slate-100 flex items-center justify-center mb-4 border">
+                          {editableUser.picture ? (
+                            <img
+                              src={editableUser.picture}
+                              alt="Profile"
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <svg
+                              className="w-20 h-20 text-slate-300"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                clipRule="evenodd"
+                              ></path>
+                            </svg>
+                          )}
+                          <button className="absolute top-2 left-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors">
+                            <svg
+                              className="w-5 h-5 text-gray-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
                               />
-                            ) : (
-                              <span className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-                                Image
-                              </span>
-                            )}
-                          </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 mt-4"> {/* Grid for two-column layout */}          
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                        {/* Edit Profile Button */}
+                        <div className="mt-8">
+                          <button
+                            type="button" // Use type="submit" if this is inside a <form> tag
+                            className="px-6 py-2 border border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
+                          >
+                            EDIT PROFILE
+                          </button>
+                        </div>
+                      </div>
 
+                      {/* Right Column: User Details Form */}
+                      <div className="flex-grow flex flex-col">
+                        <div className="space-y-3">
                           {/* Email */}
                           <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Email
-                              </label>
-                              <input
-                                  type="email"
-                                  value={editableUser.email}
-                                  onChange={(e) =>
-                                      setEditableUser({ ...editableUser, email: e.target.value })
-                                  }
-                                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                                  placeholder="example@domain.com" // Placeholder updated for style
-                              />
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              value={editableUser.email}
+                              onChange={(e) =>
+                                setEditableUser({ ...editableUser, email: e.target.value })
+                              }
+                              className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                              placeholder="example@domain.com"
+                            />
                           </div>
 
                           {/* Phone */}
                           <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Phone
-                              </label>
-                              <input
-                                  type="text"
-                                  value={editableUser.phone}
-                                  onChange={(e) =>
-                                      setEditableUser({ ...editableUser, phone: e.target.value })
-                                  }
-                                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                                  placeholder="+1-999-999-9999" // Placeholder updated for style
-                              />
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Phone
+                            </label>
+                            <input
+                              type="text"
+                              value={editableUser.phone}
+                              onChange={(e) =>
+                                setEditableUser({ ...editableUser, phone: e.target.value })
+                              }
+                              className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                              placeholder="+1-999-999-9999"
+                            />
                           </div>
 
                           {/* Department */}
                           <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Department
-                              </label>
-                              <input
-                                  type="text" // Keeping original type but renaming label for visual match
-                                  value={editableUser.department} // Still bound to department data
-                                  onChange={(e) =>
-                                      setEditableUser({ ...editableUser, department: e.target.value })
-                                  }
-                                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                                  placeholder="Marketing" // Placeholder updated for style
-                              />
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Department
+                            </label>
+                            <input
+                              type="text"
+                              value={editableUser.department}
+                              onChange={(e) =>
+                                setEditableUser({ ...editableUser, department: e.target.value })
+                              }
+                              className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                              placeholder="Marketing"
+                            />
                           </div>
 
+                          {/* Role */}
                           <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Role
-                              </label>
-                              <input
-                                  type="text" // Keeping original type but renaming label for visual match
-                                  value={editableUser.role} // Still bound to department data
-                                  onChange={(e) =>
-                                      setEditableUser({ ...editableUser, role: e.target.value })
-                                  }
-                                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                              />
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Role
+                            </label>
+                            <input
+                              type="text"
+                              value={editableUser.role}
+                              onChange={(e) =>
+                                setEditableUser({ ...editableUser, role: e.target.value })
+                              }
+                              className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                              placeholder="Manager"
+                            />
                           </div>
-                          {/* Submit Button */}
-                          {/* <div className="md:col-span-2 mt-2"> Centers the button and adds top margin */}
-                              {/* <button
-                                  type="submit"
-                                  className="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200"
-                              >
-                                  Submit
-                              </button>
-                          </div> */}
                         </div>
                       </div>
+                    </div>
                   </div>
-                </div>
+                  </div>
               )}
 
               {activeTab === 1 && (
@@ -221,28 +259,27 @@ export default function EditUserModal({
                       </tr>
                   </tbody>
               </table>
-              {/* ==== Footer Buttons ==== */}
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setSelectedUser(null)}
-                    className="px-2 py-2 rounded-lg border text-sm hover:bg-gray-100"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => handleSaveUser(editableUser)}
-                    className="px-2 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
-                  >
-                    Save
-                  </button>
-                </div>
                 </div>
                 </div>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
-        
+         {/* ==== Footer Buttons ==== */}
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => setSelectedUser(null)}
+            className="px-2 py-2 rounded-lg border text-sm hover:bg-gray-100"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => handleSaveUser(editableUser)}
+            className="px-2 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+          >
+            Save
+          </button>
+        </div>
       </div>
     </div>
   );
