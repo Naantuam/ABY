@@ -4,7 +4,7 @@ import {
   MagnifyingGlassIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
-import logo from "../assets/ABY.png";
+// import logo from "../../public/assets/ABY.png";
 
 export default function TopBar({
   sidebarOpen = true,

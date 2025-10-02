@@ -16,7 +16,7 @@ const AuthLayout = ({ children }) => {
                   // 2. FLEX from md breakpoint and up
                   md:flex 
                   // All other original classes
-                  fixed inset-0 bg-[url('src/assets/photo_2025-10-01_22-35-45.jpg')] bg-cover bg-center 
+                  fixed inset-0 bg-[url('/assets/photo_2025-10-01_22-35-45.jpg')] bg-cover bg-center 
                   backdrop-blur-sm items-center justify-center z-50 
                   mx-5 sm:mx-20 my-20 sm:my-10 py-8 rounded-3xl"
       >
