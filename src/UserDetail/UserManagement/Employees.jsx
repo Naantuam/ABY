@@ -307,7 +307,7 @@ const handleSaveModal = (updatedEmployee) => {
                   if (e.target.closest("button")) return; // ignore if clicking inline Edit
                   handleRowClick(emp); // opens modal
                 }}
-                className="border-b hover:bg-gray-50 transition-colors"
+                className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
               >
                 <td className="px-2 py-2">{emp.id}</td>
 

@@ -323,7 +323,7 @@ export default function RiskList() {
             {filteredRisks.map((risk) => (
               <tr
                 key={risk.id}
-                className="border-b hover:bg-gray-50 transition-colors"
+                className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
               >
                 <td className="px-2 py-2">{risk.id}</td>
                 <td className="px-2 py-2">{risk.date}</td>

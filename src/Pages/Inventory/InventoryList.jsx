@@ -178,7 +178,7 @@ return (
         {/* Add New Item */}
         <button
             onClick={handleAddItem}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-blue-600 text-white text-sm px-2 py-2 rounded-lg hover:bg-blue-700"
         >
             + Add Item
         </button>
@@ -266,7 +266,7 @@ return (
             {filteredItems.map((item) => (
               <tr
                 key={item.id}
-                className="border-b hover:bg-gray-50 transition-colors"
+                className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
               >
                 {/* ID (non-editable) */}
                 <td className="px-2 py-2">{item.id}</td>

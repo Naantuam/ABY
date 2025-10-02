@@ -10,7 +10,7 @@ import {
   ChartBarSquareIcon,
   Squares2X2Icon
 } from '@heroicons/react/24/solid'
-import logo from "../../../public/assets/ABY.png";
+import logo from "/assets/ABY.png";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')

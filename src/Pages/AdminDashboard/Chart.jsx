@@ -230,7 +230,7 @@ export default function OperationsChart() {
             <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-orange-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-medium text-gray-900">
               {timeFrame} {activeChart === "operations" ? "Operational Records" : "Maintenance Records"}
             </h2>
           </div>

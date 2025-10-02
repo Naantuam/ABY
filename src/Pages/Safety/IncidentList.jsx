@@ -266,7 +266,7 @@ return (
             {filteredIncidents.map((incident) => (
               <tr
                 key={incident.id}
-                className="border-b hover:bg-gray-50 transition-colors"
+                className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
               >
                 <td className="px-2 py-2">{incident.id}</td>
                 <td className="px-2 py-2">{incident.date}</td>

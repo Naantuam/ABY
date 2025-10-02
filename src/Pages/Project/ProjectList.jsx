@@ -358,7 +358,7 @@ const handleSaveRow = (id) => {
           </thead>
           <tbody>
           {projects.map((pr) => (
-            <tr key={pr.id} className="border-b hover:bg-gray-50 transition-colors">
+            <tr key={pr.id} className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm">
               
             {/* ID */}
               <td className="px-2 py-2">

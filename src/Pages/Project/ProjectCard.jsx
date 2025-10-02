@@ -7,7 +7,7 @@ export default function ProjectCard() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Project</h3>
+          <h3 className="text-lg font-medium text-gray-900">Project</h3>
           <p className="text-xl font-bold text-gray-900 mt-1">5</p>
         </div>
         <div className="bg-blue-100 p-2 rounded-full">

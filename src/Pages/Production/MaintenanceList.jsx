@@ -188,16 +188,16 @@ const filteredItems = items.filter((item) => {
       <div className="flex justify-between items-center mb-4">
         <button
           onClick={handleAdd}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-blue-600 text-white px-2 py-2 rounded-lg hover:bg-blue-700 text-sm"
         >
           + Add Operation
         </button>
 
         <button
           onClick={handleExport}
-          className="flex items-center gap-1 border px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+          className="flex items-center gap-1 border px-1 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
         >
-          <Download className="w-4 h-4" /> Export CSV
+          <Download className="w-4 h-4" />
         </button>
       </div>
 
@@ -269,7 +269,7 @@ const filteredItems = items.filter((item) => {
             {filteredItems.map((item) => (
               <tr
                 key={item.id + item.Date}
-                className="border-b hover:bg-gray-50 transition-colors"
+                className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
               >
                 {/* ID (non-editable) */}
                 <td className="px-2 py-2">{item.id}</td>

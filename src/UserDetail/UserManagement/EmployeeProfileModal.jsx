@@ -12,11 +12,11 @@ export default function UserProfileModal({
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <div className="items-center md:items-start">
             {/* Profile Picture Box */}
-            <div className="relative w-40 h-40 rounded-lg bg-slate-100 flex items-center justify-center mb-4 border">
+            <div className="relative w-40 h-40 rounded-lg bg-slate-100 flex items-center justify-center border">
               {editingEmployee.picture ? (
                 <img
                   src={editingEmployee.picture}
@@ -61,7 +61,7 @@ export default function UserProfileModal({
               </button>
             </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 md:col-span-2">
+        <div className="grid grid-cols-2 gap-2 md:col-span-2">
             {/* ID */}
             <div>
               <p className="text-gray-700 text-xs font-sm">ID Number:</p>
@@ -69,7 +69,7 @@ export default function UserProfileModal({
                 type="text"
                 value={editingEmployee.id || ""}
                 readOnly
-                className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                className="w-20 text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               />
             </div>
 
@@ -85,7 +85,7 @@ export default function UserProfileModal({
                     name: e.target.value,
                   })
                 }
-                className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                className="w-auto text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               />
             </div>
 
@@ -101,7 +101,7 @@ export default function UserProfileModal({
                     phone: e.target.value,
                   })
                 }
-                className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                className="w-auto text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               />
             </div>
 
@@ -149,7 +149,7 @@ export default function UserProfileModal({
                     bloodGroup: e.target.value,
                   })
                 }
-                className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                className="w-20 text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               />
             </div>
 
@@ -167,7 +167,7 @@ export default function UserProfileModal({
                   })
                 }
                 // readOnly={!isAdmin}
-                className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                className="w-auto text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               />
             </div>
 
@@ -185,15 +185,15 @@ export default function UserProfileModal({
                   })
                 }
                 // readOnly={!isAdmin}
-                className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                className="w-auto text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               />
             </div>
 
             {/* Buttons */}
-            <div className="pt-2 flex gap-3">
+            <div className="pt-2 flex gap-2">
               <button
                 onClick={() => handleSaveModal(editingEmployee)}
-                className="px-2 py-2 rounded-lg border border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors"
+                className="text-sm px-2 py-2 rounded-lg border border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors"
               >
                 Save Profile
               </button>
@@ -202,7 +202,7 @@ export default function UserProfileModal({
                   setSelectedEmployee(null);
                   setEditingEmployee(null);
                 }}
-                className="px-2 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors"
+                className="text-sm px-2 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors"
               >
                 Cancel
               </button>
