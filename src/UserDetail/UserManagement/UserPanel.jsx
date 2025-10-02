@@ -24,20 +24,20 @@ export default function UserPanel() {
   ];
 
   return (
-    <div className="p-6 bg-gray-50">
+    <div className="p-2 bg-gray-50">
       {/* Tabs */}
       <div className="flex justify-around border-b pb-2 mb-4">
         {tabs.map((tab, i) => (
           <button
             key={i}
             onClick={() => setActiveTab(i)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-t-lg transition ${
+            className={`flex items-center text-sm md:text-base gap-1.5 px-2 py-2 rounded-t-lg transition ${
               activeTab === i
                 ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
                 : "text-gray-600 hover:text-blue-500"
             }`}
           >
-            <tab.icon className="h-5 w-5" />
+            <tab.icon className="h-4 w-4" />
             {tab.name}
           </button>
         ))}

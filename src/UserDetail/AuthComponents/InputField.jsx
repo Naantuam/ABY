@@ -23,7 +23,7 @@ const InputField = ({ id, type = "text", placeholder, value, onChange, Icon }) =
           value={value}
           onChange={onChange}
           // Conditionally adjust padding based on whether an Icon is present
-          className={`w-full p-3 rounded-xl bg-white border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 ${Icon ? 'pl-10' : ''}`}
+          className={`w-full p-2 sm:p-3 rounded-xl bg-white border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 ${Icon ? 'pl-10 sm:pl-10' : ''}`}
         />
       </div>
     </div>

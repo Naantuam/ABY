@@ -10,7 +10,7 @@ import {
 export default function StatInfo() {
   return (
     <div className="w-full flex justify-center items-center bg-gray-50">
-      <div className="w-[96%] mx-auto grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="w-[93%] md:w-[96%] mx-auto grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard
           title="Users"
           count={40} // total = 4 + 1 + 35

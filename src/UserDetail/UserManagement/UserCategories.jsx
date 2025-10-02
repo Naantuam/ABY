@@ -104,7 +104,7 @@ export default function UserCategories() {
             <div
               key={index}
               onClick={() => setSelectedCategory(category)}
-              className="flex items-center justify-between bg-white rounded-xl shadow-sm px-4 py-3 cursor-pointer hover:shadow-md"
+              className="flex items-center justify-between bg-white rounded-xl shadow-sm px-4 py-3 cursor-pointer hover:shadow-md w-auto"
             >
               <div className="flex items-center gap-2">
                 <UserIcon className="h-4 w-4 text-gray-700" />
@@ -124,7 +124,7 @@ export default function UserCategories() {
         </div>
       ) : (
         // Selected Category Table
-        <div className="bg-white rounded-xl shadow-md p-4">
+        <div className="bg-white rounded-xl shadow-md p-4"> 
           <div className="flex items-center gap-2 mb-4">
             <button
               onClick={() => setSelectedCategory(null)}
@@ -133,17 +133,17 @@ export default function UserCategories() {
               <ArrowLeftIcon className="h-5 w-5" />
               <span>Back</span>
             </button>
-            <h2 className="text-lg font-semibold ml-4">{selectedCategory}</h2>
+            <h2 className="text-base font-semibold ml-4">{selectedCategory}</h2>
           </div>
-
+          <div className="overflow-x-auto">
           <table className="w-full border-collapse border">
             <thead className="bg-gray-100">
               <tr>
-                <th className="border px-3 py-2 text-left">Names</th>
-                <th className="border px-3 py-2 text-left">Emails</th>
-                <th className="border px-3 py-2 text-left">Phone No</th>
-                <th className="border px-3 py-2 text-left">Department</th>
-                <th className="border px-3 py-2 text-left">Role</th>
+                <th className="border px-2 py-2 text-left">Names</th>
+                <th className="border px-2 py-2 text-left">Emails</th>
+                <th className="border px-2 py-2 text-left">Phone No</th>
+                <th className="border px-2 py-2 text-left">Department</th>
+                <th className="border px-2 py-2 text-left">Role</th>
               </tr>
             </thead>
             <tbody>
@@ -151,17 +151,18 @@ export default function UserCategories() {
                 <tr
                   key={i}
                   onClick={() => setSelectedUser(u)}
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className="hover:bg-gray-50 cursor-pointer text-xs md:text-sm"
                 >
-                  <td className="border px-3 py-2">{u.name}</td>
-                  <td className="border px-3 py-2">{u.email}</td>
-                  <td className="border px-3 py-2">{u.phone}</td>
-                  <td className="border px-3 py-2">{u.department}</td>
-                  <td className="border px-3 py-2">{u.role}</td>
+                  <td className="border px-2 py-2">{u.name}</td>
+                  <td className="border px-2 py-2">{u.email}</td>
+                  <td className="border px-2 py-2">{u.phone}</td>
+                  <td className="border px-2 py-2">{u.department}</td>
+                  <td className="border px-2 py-2">{u.role}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
 
           {/* Add Staff Button */}
           <div className="flex justify-end mt-4">
@@ -187,7 +188,7 @@ export default function UserCategories() {
 
       {/* Modal for adding new category */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg w-96 p-6">
             <h2 className="text-lg font-semibold mb-4">Add User Category</h2>
             <form onSubmit={handleAddCategory} className="space-y-4">
@@ -220,7 +221,7 @@ export default function UserCategories() {
 
       {/* Modal for adding user */}
       {showAddUserForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg w-[500px] p-6">
             <h2 className="text-lg font-semibold mb-4">Add Staff</h2>
             <form

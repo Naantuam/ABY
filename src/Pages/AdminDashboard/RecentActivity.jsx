@@ -37,7 +37,7 @@ export default function RecentActivity() {
 
   return (
     <div className="bg-gray-50 w-full flex justify-center items-center">
-    <div className="bg-white rounded-2xl shadow-md w-[96%] p-4"> 
+    <div className="bg-white rounded-2xl shadow-md w-[93%] md:w-[96%] p-4"> 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-black">Recent Activity</h3>

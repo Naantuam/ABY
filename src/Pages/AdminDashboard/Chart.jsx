@@ -225,7 +225,7 @@ export default function OperationsChart() {
       {/* Main Chart Area */}
       <div className="flex-1 bg-white rounded-2xl p-2 md:p-4 shadow-sm">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-orange-600" />
@@ -237,12 +237,12 @@ export default function OperationsChart() {
         </div>
 
         {/* Time Period Buttons */}
-        <div className="flex gap-1 mb-8">
+        <div className="flex gap-1 mb-5">
           {["Daily", "Monthly", "Yearly"].map((period) => (
             <button
               key={period}
               onClick={() => setTimeFrame(period)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-2 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
                 timeFrame === period ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -252,7 +252,7 @@ export default function OperationsChart() {
         </div>
 
         {/* Chart */}
-        <div className="h-60 mb-5">
+        <div className="h-50 md:h-60 mb-2">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="2 2" stroke="#f0f0f0" />
@@ -319,10 +319,10 @@ export default function OperationsChart() {
       </div>
 
        {/* Summary for mobile (appears below chart) */}
-        <div className="lg:hidden mt-4">
+        <div className="lg:hidden">
           <div className="relative">
-            <div className="bg-white rounded-2xl p-4 shadow-sm w-full h-40">
-              <h4 className="text-xl justify-center text-center font-semibold text-gray-700 mb-5">
+            <div className="bg-white rounded-2xl p-4 shadow-sm w-full h-30">
+              <h4 className="text-base justify-center text-center font-medium text-gray-700 mb-5">
                 {activeChart === "operations" ? "Recent Operation" : "Recent Maintenance"}
               </h4>
               <div className="flex flex-row justify-between">
@@ -375,8 +375,8 @@ export default function OperationsChart() {
           </div>
         </div>
   {/* Summary Card (appears under whichever is selected) */}
-    <div className="bg-white rounded-2xl p-4 shadow-sm mt-4 h-90">
-      <h4 className="text-base font-semibold text-black mb-5 justify-center text-center">
+    <div className="bg-white rounded-2xl p-4 shadow-sm mt-4 h-70">
+      <h4 className="text-base font-medium text-gray-700 mb-5 justify-center text-center">
         {activeChart === "operations" ? "Latest Operation" : "Latest Maintenance"}
       </h4>
       <div className="space-y-6">
