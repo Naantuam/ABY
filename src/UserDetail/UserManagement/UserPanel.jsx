@@ -26,7 +26,7 @@ export default function UserPanel() {
   return (
     <div className="p-2 bg-gray-50">
       {/* Tabs */}
-      <div className="flex justify-around border-b pb-2 mb-4">
+      <div className="flex justify-around border-b pb-2 mb-4 overflow-x-auto">
         {tabs.map((tab, i) => (
           <button
             key={i}

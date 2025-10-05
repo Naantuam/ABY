@@ -126,6 +126,7 @@ export default function OperationsChart() {
   const [timeFrame, setTimeFrame] = useState("Daily")
   const [activeChart, setActiveChart] = useState("operations")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false)
 
   const getDataForTimeFrame = () => {
     const chartData = activeChart === "operations" ? sampleData.operations : sampleData.maintenance
@@ -224,35 +225,68 @@ export default function OperationsChart() {
 
       {/* Main Chart Area */}
       <div className="flex-1 bg-white rounded-2xl p-2 md:p-4 shadow-sm">
+        <div className="flex flew-row justify-between items-center">
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+          <div className="flex items-center gap-1 sm:gap-3">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-orange-600" />
             </div>
-            <h2 className="text-xl font-medium text-gray-900">
-              {timeFrame} {activeChart === "operations" ? "Operational Records" : "Maintenance Records"}
+            <h2 className="text-sm sm:text-lg font-medium text-gray-900">
+              {activeChart === "operations" ? "Operational Records" : "Maintenance Records"}
             </h2>
           </div>
         </div>
 
-        {/* Time Period Buttons */}
-        <div className="flex gap-1 mb-5">
-          {["Daily", "Monthly", "Yearly"].map((period) => (
-            <button
-              key={period}
-              onClick={() => setTimeFrame(period)}
-              className={`px-2 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                timeFrame === period ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        {/* Time Period Dropdown */}
+        <div className="relative mb-5">
+          {/* Dropdown Trigger (keeps same look as your buttons) */}
+          <div
+            className="px-2 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs md:text-sm font-medium cursor-pointer hover:bg-gray-200 transition-colors flex items-center justify-between w-auto"
+            onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
+          >
+            <span>{timeFrame}</span>
+            <svg
+              className={`w-3 h-3 transform transition-transform ${
+                isTimeDropdownOpen ? "rotate-180" : ""
               }`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
             >
-              {period}
-            </button>
-          ))}
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+
+          {/* Dropdown Menu */}
+          {isTimeDropdownOpen && (
+            <div className="absolute mt-1 bg-white rounded-lg shadow-lg border border-gray-200 w-32 z-10">
+              {["Daily", "Monthly", "Yearly"].map((period) => (
+                <div
+                  key={period}
+                  className={`px-2 py-2 text-xs md:text-sm cursor-pointer transition-colors ${
+                    timeFrame === period
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                  onClick={() => {
+                    setTimeFrame(period);
+                    setIsTimeDropdownOpen(false);
+                  }}
+                >
+                  {period}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         </div>
 
         {/* Chart */}
-        <div className="h-50 md:h-60 mb-2">
+        <div className="h-50 md:h-60 mb-2 overflow-x-auto">
+          <div className="min-w-[500px] h-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="2 2" stroke="#f0f0f0" />
@@ -299,21 +333,22 @@ export default function OperationsChart() {
               />
             </LineChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Bottom Summary Cards */}
         <div className="flex justify-around items-center gap-2 sm:gap-4 flex-wrap">
           <div className="rounded-lg p-1 text-center cursor-pointer hover:bg-green-100 transition-colors">
             {/* <p className="text-sm font-medium text-green-700 mb-1">Income</p> */}
-            <p className="text-sm sm:text-base font-medium text-green-600">{formatCurrency(totals.Income)}</p>
+            <p className="text-xs sm:text-base font-medium text-green-600">{formatCurrency(totals.Income)}</p>
           </div>
           <div className="rounded-lg p-1 text-center cursor-pointer hover:bg-red-100 transition-colors">
             {/* <p className="text-sm font-medium text-red-700 mb-1">Expenses</p> */}
-            <p className="text-sm sm:text-base font-medium text-red-600">{formatCurrency(totals.Expenses)}</p>
+            <p className="text-xs sm:text-base font-medium text-red-600">{formatCurrency(totals.Expenses)}</p>
           </div>
           <div className="rounded-lg p-1 text-center cursor-pointer hover:bg-blue-100 transition-colors">
             {/* <p className="text-sm font-medium text-blue-700 mb-1">Balance</p> */}
-            <p className="text-sm sm:text-base font-medium text-blue-600">{formatCurrency(totals.Balance)}</p>
+            <p className="text-xs sm:text-base font-medium text-blue-600">{formatCurrency(totals.Balance)}</p>
           </div>
         </div>
       </div>
@@ -329,15 +364,15 @@ export default function OperationsChart() {
                 {/* Add summary details here */}
                 <div className="rounded-lg p-1 text-center cursor-pointer hover:bg-green-100 transition-colors">
                   <p className="text-sm font-semibold text-green-700 mb-1">Income</p>
-                  <p className="text-sm sm:text-base font-medium text-green-600">{formatCurrency(latest.Income)}</p>
+                  <p className="text-xs sm:text-base font-medium text-green-600">{formatCurrency(latest.Income)}</p>
                 </div>
                 <div className="rounded-lg p-1 text-center cursor-pointer hover:bg-red-100 transition-colors">
                   <p className="text-sm font-semibold text-red-700 mb-1">Expenses</p>
-                  <p className="text-sm sm:text-base font-medium text-red-600">{formatCurrency(latest.Expenses)}</p>
+                  <p className="text-xs sm:text-base font-medium text-red-600">{formatCurrency(latest.Expenses)}</p>
                 </div>
                 <div className="rounded-lg p-1 text-center cursor-pointer hover:bg-blue-100 transition-colors">
                   <p className="text-sm font-semibold text-blue-700 mb-1">Balance</p>
-                  <p className="text-sm sm:text-base font-medium text-blue-600">{formatCurrency(latest.Balance)}</p>
+                  <p className="text-xs sm:text-base font-medium text-blue-600">{formatCurrency(latest.Balance)}</p>
                 </div>
               </div>
             </div>
@@ -347,33 +382,48 @@ export default function OperationsChart() {
 
       {/* Right Sidebar - Hidden on Mobile, Visible on Large Screens */}
       <div className="hidden lg:block w-35 space-y-4">
-        <div
-          className={`bg-white rounded-2xl p-2 shadow-sm cursor-pointer transition-colors ${
-            activeChart === "operations" ? "ring-2 ring-blue-500" : "hover:bg-gray-50"
-          }`}
-          onClick={() => setActiveChart("operations")}
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-auto h-8 rounded-lg flex flex-row items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-blue-500" />
-              <h3 className="font-medium text-gray-900 hover:text-blue-600">Operations</h3>
-            </div>
-          </div>
+        <div className="relative">
+    {/* Dropdown Trigger (looks like your current div) */}
+    <div
+      className={`bg-white rounded-2xl p-2 shadow-sm cursor-pointer transition-colors ${
+        activeChart ? "ring-2 ring-blue-500" : "hover:bg-gray-50"
+      }`}
+      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+    >
+      <div className="flex items-center justify-between">
+        <div className="w-auto h-8 rounded-lg flex flex-row items-center justify-center">
+          <BarChart3 className="w-4 h-4 text-blue-500" />
+          <h3 className="font-medium text-gray-900 hover:text-blue-600 capitalize ml-1">
+            {activeChart || "Select Option"}
+          </h3>
         </div>
+      </div>
+    </div>
 
-        <div
-          className={`bg-white rounded-2xl p-2 shadow-sm cursor-pointer transition-colors ${
-            activeChart === "maintenance" ? "ring-2 ring-blue-500" : "hover:bg-gray-50"
-          }`}
-          onClick={() => setActiveChart("maintenance")}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-auto h-8 rounded-lg flex flex-row items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-blue-500" />
-              <h3 className="font-medium text-gray-900 hover:text-blue-600">Maintenance</h3>
-            </div>
+    {/* Dropdown Menu */}
+    {isDropdownOpen && (
+      <div className="absolute mt-2 bg-white rounded-2xl shadow-lg border border-gray-200 w-full z-10">
+        {["operations", "maintenance"].map((option) => (
+          <div
+            key={option}
+            className={`p-2 cursor-pointer flex items-center gap-2 transition-colors ${
+              activeChart === option
+                ? "bg-blue-100 text-blue-700"
+                : "hover:bg-gray-50 text-gray-900"
+            }`}
+            onClick={() => {
+              setActiveChart(option);
+              setIsDropdownOpen(false);
+            }}
+          >
+            <BarChart3 className="w-4 h-4 text-blue-500" />
+            <span className="capitalize">{option}</span>
           </div>
-        </div>
+        ))}
+      </div>
+    )}
+  </div>
+
   {/* Summary Card (appears under whichever is selected) */}
     <div className="bg-white rounded-2xl p-4 shadow-sm mt-4 h-70">
       <h4 className="text-base font-medium text-gray-700 mb-5 justify-center text-center">

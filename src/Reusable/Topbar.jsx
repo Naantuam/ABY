@@ -1,7 +1,7 @@
 import {
   EnvelopeIcon,
   UserCircleIcon,
-  MagnifyingGlassIcon,
+  // MagnifyingGlassIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
 // import logo from "/assets/ABY.png";
@@ -22,15 +22,15 @@ export default function TopBar({
             {/* <div className="flex flex-col items-center h-8 justify-center">
               <img src={logo} alt="Logo" className="w-20 mb-1" />
             </div> */}
-            <Bars3Icon className="h-6 w-6" />
+            <Bars3Icon className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         )}
       </div>
 
       {/* Right section (Search + Icons) */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4">
         {/* Search Input */}
-        <div className="relative">
+        {/* <div className="relative">
           <input
             type="text"
             placeholder="Search..."
@@ -39,17 +39,17 @@ export default function TopBar({
           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
             <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
           </div>
-        </div>
+        </div> */}
 
         {/* Notification Bell */}
         <button className="relative text-gray-600 hover:text-black">
           <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-600 rounded-full"></span>
-          <EnvelopeIcon className="h-6 w-6" />
+          <EnvelopeIcon className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
 
         {/* User Icon */}
         <button className="text-gray-600 hover:text-black">
-          <UserCircleIcon className="h-7 w-7" />
+          <UserCircleIcon className="h-6 w-6 sm:h-7 sm:w-7" />
         </button>
       </div>
     </header>
