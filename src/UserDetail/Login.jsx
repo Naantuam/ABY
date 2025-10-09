@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import api from "../api";
+import api from "../api"
 import AuthLayout from "./AuthComponents/AuthLayout"
 import AuthCard from "./AuthComponents/AuthCard"
 import AuthLink from "./AuthComponents/AuthLink"
