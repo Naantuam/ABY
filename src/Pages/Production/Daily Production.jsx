@@ -21,13 +21,13 @@ export default function DailyProduction() {
 
   // Sample data (rows for Oct 1-7, 2019) — numeric values stored
   const initial = [
-    { id: "DP-01", Date: "2019-10-01", Trucks: 0, Remarks: "Nil" },
-    { id: "DP-02", Date: "2019-10-02", Trucks: 2, Remarks: "Paid" },
-    { id: "DP-03", Date: "2019-10-03", Trucks: 5, Remarks: "Paid" },
-    { id: "DP-04", Date: "2019-10-04", Trucks: 4, Remarks: "Paid" },
-    { id: "DP-05", Date: "2019-10-05", Trucks: 2, Remarks: "Nil" },
-    { id: "DP-06", Date: "2019-10-06", Trucks: 0, Remarks: "Nil" },
-    { id: "DP-07", Date: "2019-10-07", Trucks: 3, Remarks: "Paid" },
+    { id: "1", Date: "2019-10-01", Trucks: 0, Remarks: "Nill" },
+    { id: "2", Date: "2019-10-02", Trucks: 2, Remarks: "Paid" },
+    { id: "3", Date: "2019-10-03", Trucks: 5, Remarks: "Paid" },
+    { id: "4", Date: "2019-10-04", Trucks: 4, Remarks: "Paid" },
+    { id: "5", Date: "2019-10-05", Trucks: 2, Remarks: "Nill" },
+    { id: "6", Date: "2019-10-06", Trucks: 0, Remarks: "Nill" },
+    { id: "7", Date: "2019-10-07", Trucks: 3, Remarks: "Paid" },
   ].map((r) => {
     const d = computeDerived(r.Trucks);
     return {
@@ -42,6 +42,13 @@ export default function DailyProduction() {
 
   const [items, setItems] = useState(initial);
   const [editingRowId, setEditingRowId] = useState(null);
+  const [originalItem, setOriginalItem] = useState(null); // store item before edit
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null); // "save" or "delete"
+  
+ 
+  
+
 
   // CSV Export
   function convertToCSV(data) {
@@ -64,153 +71,155 @@ export default function DailyProduction() {
   }
 
   // Filters and modal states
-  const [filters, setFilters] = useState({
-    sn: "",
-    snMin: "",
-    snMax: "",
-    dateMin: "",
-    dateMax: "",
-    trucksMin: "",
-    trucksMax: "",
-    quantityMin: "",
-    quantityMax: "",
-    federalMin: "",
-    federalMax: "",
-    stateMin: "",
-    stateMax: "",
-    mouMin: "",
-    mouMax: "",
-    totalMin: "",
-    totalMax: "",
-    remarks: "", // dropdown filter (Paid / Nil / "")
-  });
+const [filters, setFilters] = useState({
+  sn: "",
+  snMin: "",
+  snMax: "",
+  dateMin: "",
+  dateMax: "",
+  trucksMin: "",
+  trucksMax: "",
+  quantityMin: "",
+  quantityMax: "",
+  federalMin: "",
+  federalMax: "",
+  stateMin: "",
+  stateMax: "",
+  mouMin: "",
+  mouMax: "",
+  totalMin: "",
+  totalMax: "",
+  remarks: "", // dropdown filter (Paid / Nil / "")
+});
 
-  const [snModalOpen, setSnModalOpen] = useState(false);
-  const [dateModalOpen, setDateModalOpen] = useState(false);
-  const [trucksModalOpen, setTrucksModalOpen] = useState(false);
-  const [quantityModalOpen, setQuantityModalOpen] = useState(false);
-  const [federalModalOpen, setFederalModalOpen] = useState(false);
-  const [stateModalOpen, setStateModalOpen] = useState(false);
-  const [mouModalOpen, setMouModalOpen] = useState(false);
-  const [totalModalOpen, setTotalModalOpen] = useState(false);
+const [snModalOpen, setSnModalOpen] = useState(false);
+const [dateModalOpen, setDateModalOpen] = useState(false);
+const [trucksModalOpen, setTrucksModalOpen] = useState(false);
+const [quantityModalOpen, setQuantityModalOpen] = useState(false);
+const [federalModalOpen, setFederalModalOpen] = useState(false);
+const [stateModalOpen, setStateModalOpen] = useState(false);
+const [mouModalOpen, setMouModalOpen] = useState(false);
+const [totalModalOpen, setTotalModalOpen] = useState(false);
 
-  // local modal ranges (for building the request)
-  const [snRange, setSnRange] = useState({ min: "", max: "" });
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
-  const [trucksRange, setTrucksRange] = useState({ min: "", max: "" });
-  const [quantityRange, setQuantityRange] = useState({ min: "", max: "" });
-  const [federalRange, setFederalRange] = useState({ min: "", max: "" });
-  const [stateRange, setStateRange] = useState({ min: "", max: "" });
-  const [mouRange, setMouRange] = useState({ min: "", max: "" });
-  const [totalRange, setTotalRange] = useState({ min: "", max: "" });
+const [snRange, setSnRange] = useState({ min: "", max: "" });
+const [dateRange, setDateRange] = useState({ start: "", end: "" });
+const [trucksRange, setTrucksRange] = useState({ min: "", max: "" });
+const [quantityRange, setQuantityRange] = useState({ min: "", max: "" });
+const [federalRange, setFederalRange] = useState({ min: "", max: "" });
+const [stateRange, setStateRange] = useState({ min: "", max: "" });
+const [mouRange, setMouRange] = useState({ min: "", max: "" });
+const [totalRange, setTotalRange] = useState({ min: "", max: "" });
 
-  // Filtering logic (applies all active filters)
-  const filteredItems = items.filter((item, idx) => {
-    // S/N: use index+1 as serial
-    const sn = idx + 1;
-    const snSingle = filters.sn ? Number(filters.sn.replace(/\D/g, "")) : null;
-    const snMin = filters.snMin ? Number(filters.snMin.replace(/\D/g, "")) : null;
-    const snMax = filters.snMax ? Number(filters.snMax.replace(/\D/g, "")) : null;
-    let matchSN = true;
-    if (snSingle !== null) matchSN = sn === snSingle;
-    else if (snMin !== null || snMax !== null) {
-      const min = snMin !== null ? snMin : -Infinity;
-      const max = snMax !== null ? snMax : Infinity;
-      matchSN = sn >= min && sn <= max;
-    }
+const [visibleCount, setVisibleCount] = useState(10); // show 10 rows initially
 
-    // Date filter (YYYY-MM-DD -> number)
-    const toDateNum = (d) => (d ? Number(d.replace(/-/g, "")) : null);
-    const itemDateNum = toDateNum(item.Date);
-    const dMin = filters.dateMin ? toDateNum(filters.dateMin) : null;
-    const dMax = filters.dateMax ? toDateNum(filters.dateMax) : null;
-    let matchDate = true;
-    if (dMin && dMax) matchDate = itemDateNum >= dMin && itemDateNum <= dMax;
-    else if (dMin && !dMax) matchDate = itemDateNum === dMin;
+// ✅ Filtering logic first
+const filteredItems = items.filter((item, idx) => {
+  const sn = idx + 1;
+  const snSingle = filters.sn ? Number(filters.sn.replace(/\D/g, "")) : null;
+  const snMin = filters.snMin ? Number(filters.snMin.replace(/\D/g, "")) : null;
+  const snMax = filters.snMax ? Number(filters.snMax.replace(/\D/g, "")) : null;
+  let matchSN = true;
+  if (snSingle !== null) matchSN = sn === snSingle;
+  else if (snMin !== null || snMax !== null) {
+    const min = snMin !== null ? snMin : -Infinity;
+    const max = snMax !== null ? snMax : Infinity;
+    matchSN = sn >= min && sn <= max;
+  }
 
-    // Trucks
-    const trucks = Number(item.Trucks);
-    const tMin = filters.trucksMin ? Number(filters.trucksMin) : null;
-    const tMax = filters.trucksMax ? Number(filters.trucksMax) : null;
-    let matchTrucks = true;
-    if (tMin !== null || tMax !== null) {
-      const min = tMin !== null ? tMin : -Infinity;
-      const max = tMax !== null ? tMax : Infinity;
-      matchTrucks = trucks >= min && trucks <= max;
-    }
+  // Date filter
+  const toDateNum = (d) => (d ? Number(d.replace(/-/g, "")) : null);
+  const itemDateNum = toDateNum(item.Date);
+  const dMin = filters.dateMin ? toDateNum(filters.dateMin) : null;
+  const dMax = filters.dateMax ? toDateNum(filters.dateMax) : null;
+  let matchDate = true;
+  if (dMin && dMax) matchDate = itemDateNum >= dMin && itemDateNum <= dMax;
+  else if (dMin && !dMax) matchDate = itemDateNum === dMin;
 
-    // Quantity
-    const quantity = Number(item.Quantity);
-    const qMin = filters.quantityMin ? Number(filters.quantityMin) : null;
-    const qMax = filters.quantityMax ? Number(filters.quantityMax) : null;
-    let matchQuantity = true;
-    if (qMin !== null || qMax !== null) {
-      const min = qMin !== null ? qMin : -Infinity;
-      const max = qMax !== null ? qMax : Infinity;
-      matchQuantity = quantity >= min && quantity <= max;
-    }
+  // Trucks
+  const trucks = Number(item.Trucks);
+  const tMin = filters.trucksMin ? Number(filters.trucksMin) : null;
+  const tMax = filters.trucksMax ? Number(filters.trucksMax) : null;
+  let matchTrucks = true;
+  if (tMin !== null || tMax !== null) {
+    const min = tMin !== null ? tMin : -Infinity;
+    const max = tMax !== null ? tMax : Infinity;
+    matchTrucks = trucks >= min && trucks <= max;
+  }
 
-    // Federal
-    const fed = Number(item.FederalRoyalty);
-    const fMin = filters.federalMin ? Number(filters.federalMin) : null;
-    const fMax = filters.federalMax ? Number(filters.federalMax) : null;
-    let matchFederal = true;
-    if (fMin !== null || fMax !== null) {
-      const min = fMin !== null ? fMin : -Infinity;
-      const max = fMax !== null ? fMax : Infinity;
-      matchFederal = fed >= min && fed <= max;
-    }
+  // Quantity
+  const quantity = Number(item.Quantity);
+  const qMin = filters.quantityMin ? Number(filters.quantityMin) : null;
+  const qMax = filters.quantityMax ? Number(filters.quantityMax) : null;
+  let matchQuantity = true;
+  if (qMin !== null || qMax !== null) {
+    const min = qMin !== null ? qMin : -Infinity;
+    const max = qMax !== null ? qMax : Infinity;
+    matchQuantity = quantity >= min && quantity <= max;
+  }
 
-    // State
-    const st = Number(item.StateHaulage);
-    const sMin = filters.stateMin ? Number(filters.stateMin) : null;
-    const sMax = filters.stateMax ? Number(filters.stateMax) : null;
-    let matchState = true;
-    if (sMin !== null || sMax !== null) {
-      const min = sMin !== null ? sMin : -Infinity;
-      const max = sMax !== null ? sMax : Infinity;
-      matchState = st >= min && st <= max;
-    }
+  // Federal
+  const fed = Number(item.FederalRoyalty);
+  const fMin = filters.federalMin ? Number(filters.federalMin) : null;
+  const fMax = filters.federalMax ? Number(filters.federalMax) : null;
+  let matchFederal = true;
+  if (fMin !== null || fMax !== null) {
+    const min = fMin !== null ? fMin : -Infinity;
+    const max = fMax !== null ? fMax : Infinity;
+    matchFederal = fed >= min && fed <= max;
+  }
 
-    // MoU
-    const mou = Number(item.MoU);
-    const mMin = filters.mouMin ? Number(filters.mouMin) : null;
-    const mMax = filters.mouMax ? Number(filters.mouMax) : null;
-    let matchMou = true;
-    if (mMin !== null || mMax !== null) {
-      const min = mMin !== null ? mMin : -Infinity;
-      const max = mMax !== null ? mMax : Infinity;
-      matchMou = mou >= min && mou <= max;
-    }
+  // State
+  const st = Number(item.StateHaulage);
+  const sMin = filters.stateMin ? Number(filters.stateMin) : null;
+  const sMax = filters.stateMax ? Number(filters.stateMax) : null;
+  let matchState = true;
+  if (sMin !== null || sMax !== null) {
+    const min = sMin !== null ? sMin : -Infinity;
+    const max = sMax !== null ? sMax : Infinity;
+    matchState = st >= min && st <= max;
+  }
 
-    // Total
-    const tot = Number(item.Total);
-    const totMin = filters.totalMin ? Number(filters.totalMin) : null;
-    const totMax = filters.totalMax ? Number(filters.totalMax) : null;
-    let matchTotal = true;
-    if (totMin !== null || totMax !== null) {
-      const min = totMin !== null ? totMin : -Infinity;
-      const max = totMax !== null ? totMax : Infinity;
-      matchTotal = tot >= min && tot <= max;
-    }
+  // MoU
+  const mou = Number(item.MoU);
+  const mMin = filters.mouMin ? Number(filters.mouMin) : null;
+  const mMax = filters.mouMax ? Number(filters.mouMax) : null;
+  let matchMou = true;
+  if (mMin !== null || mMax !== null) {
+    const min = mMin !== null ? mMin : -Infinity;
+    const max = mMax !== null ? mMax : Infinity;
+    matchMou = mou >= min && mou <= max;
+  }
 
-    // Remarks dropdown
-    const matchRemarks = filters.remarks
-      ? item.Remarks === filters.remarks
-      : true;
+  // Total
+  const tot = Number(item.Total);
+  const totMin = filters.totalMin ? Number(filters.totalMin) : null;
+  const totMax = filters.totalMax ? Number(filters.totalMax) : null;
+  let matchTotal = true;
+  if (totMin !== null || totMax !== null) {
+    const min = totMin !== null ? totMin : -Infinity;
+    const max = totMax !== null ? totMax : Infinity;
+    matchTotal = tot >= min && tot <= max;
+  }
 
-    return (
-      matchSN &&
-      matchDate &&
-      matchTrucks &&
-      matchQuantity &&
-      matchFederal &&
-      matchState &&
-      matchMou &&
-      matchTotal &&
-      matchRemarks
-    );
-  });
+  // Remarks
+  const matchRemarks = filters.remarks ? item.Remarks === filters.remarks : true;
+
+  return (
+    matchSN &&
+    matchDate &&
+    matchTrucks &&
+    matchQuantity &&
+    matchFederal &&
+    matchState &&
+    matchMou &&
+    matchTotal &&
+    matchRemarks
+  );
+});
+
+// ✅ Then sort and slice for display
+const sortedItems = [...items].sort((a, b) => Number(b.id) - Number(a.id));
+const visibleItems = sortedItems.slice(0, visibleCount);
 
   // CSV export handler
   const handleExport = () => {
@@ -226,9 +235,12 @@ export default function DailyProduction() {
   };
 
   
-  const handleAddRow = () => {
-  const newId = items.length + 1;
-  const { quantity, federalRoyalty, stateHaulage, mou, total } = computeDerived(0); // initialize
+  // Add record
+const handleAddRow = () => {
+  const maxId = Math.max(...items.map((item) => Number(item.id) || 0));
+  const newId = (maxId + 1).toString();
+
+  const { quantity, federalRoyalty, stateHaulage, mou, total } = computeDerived(0);
 
   const newItem = {
     id: newId,
@@ -242,48 +254,64 @@ export default function DailyProduction() {
     Remarks: "",
   };
 
-  setItems((prev) => [...prev, newItem]);
-  setEditingRowId(newId); // ✅ immediately enable edit mode for this row
+  setItems((prev) => [...prev, newItem]); // add it
+  setEditingRowId(newId);
+  setOriginalItem(newItem);
 };
 
 
-  const handleDelete = (id) => {
-    setItems((s) => s.filter((it) => it.id !== id));
+ const handleDelete = (id) => {
+    const itemToDelete = items.find((it) => it.id === id);
+    setOriginalItem(itemToDelete);
+    setPendingAction({ type: "delete", id });
+    setShowConfirm(true);
   };
 
   const handleFieldChange = (id, field, value) => {
-  setItems((prev) =>
-    prev.map((item) => {
-      if (item.id === id) {
-        let updated = { ...item, [field]: value };
-
-        // Recompute derived values only when Trucks changes
-        if (field === "Trucks") {
-          const { quantity, federalRoyalty, stateHaulage, mou, total } = computeDerived(value);
-          updated = {
-            ...updated,
-            Quantity: quantity,
-            FederalRoyalty: federalRoyalty,
-            StateHaulage: stateHaulage,
-            MoU: mou,
-            Total: total,
-          };
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          let updated = { ...item, [field]: value };
+          if (field === "Trucks") {
+            const { quantity, federalRoyalty, stateHaulage, mou, total } = computeDerived(value);
+            updated = { ...updated, Quantity: quantity, FederalRoyalty: federalRoyalty, StateHaulage: stateHaulage, MoU: mou, Total: total };
+          }
+          return updated;
         }
-        return updated;
-      }
-      return item;
-    })
-  );
-};
+        return item;
+      })
+    );
+  };
 
-  const handleSaveRow = () => setEditingRowId(null);
+  const handleSaveRow = (id) => {
+    const currentItem = items.find((it) => it.id === id);
+    if (JSON.stringify(currentItem) === JSON.stringify(originalItem)) {
+      // No changes → auto-save
+      setEditingRowId(null);
+      setOriginalItem(null);
+      return;
+    }
+    setPendingAction({ type: "save", id });
+    setShowConfirm(true);
+  };
+
+  const confirmAction = () => {
+    if (pendingAction.type === "save") {
+      setEditingRowId(null);
+      setOriginalItem(null);
+    } else if (pendingAction.type === "delete") {
+      setItems((prev) => prev.filter((it) => it.id !== pendingAction.id));
+    }
+    setPendingAction(null);
+    setShowConfirm(false);
+  };
 
   // Helper to format money for display
   const fmt = (v) =>
     typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : v;
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-sm">
+    <div className="p-4 bg-white rounded-xl shadow-sm">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <button
@@ -302,9 +330,10 @@ export default function DailyProduction() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto max-h-[540px] overflow-y-auto">
+      <div className="overflow-x-auto">
+        {/* Header (fixed / sticky) */}
         <table className="w-full border-collapse text-sm">
-          <thead className="sticky top-0 bg-white z-10">
+          <thead className="sticky top-0 bg-white z-20">
             <tr className="bg-gray-100 text-left text-gray-600 font-medium text-xs">
               {/* S/N */}
               <th className="px-2 py-2">
@@ -319,7 +348,7 @@ export default function DailyProduction() {
               </th>
 
               {/* Date */}
-              <th className="px-2 py-2">
+              <th className="px-2 py-2 w-35">
                 <button
                   onClick={() => setDateModalOpen(true)}
                   className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${
@@ -331,7 +360,7 @@ export default function DailyProduction() {
               </th>
 
               {/* No. of Trucks */}
-              <th className="px-1 py-2">
+              <th className="px-1 py-2 w-25">
                 <button
                   onClick={() => setTrucksModalOpen(true)}
                   className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${
@@ -342,23 +371,11 @@ export default function DailyProduction() {
                 </button>
               </th>
 
-              {/* Quantities (Tonnes) */}
-              <th className="py-2">
-                <button
-                  onClick={() => setQuantityModalOpen(true)}
-                  className={`hover:bg-gray-300 w-25 rounded-lg px-1 py-1 ${
-                    quantityModalOpen ? "border-2 border-blue-500" : ""
-                  }`}
-                >
-                  Quantity (Tonnes)
-                </button>
-              </th>
-
               {/* Federal Govt Royalty */}
-              <th className="px-1 py-2">
+              <th className="px-1 py-2 w-50">
                 <button
                   onClick={() => setFederalModalOpen(true)}
-                  className={`hover:bg-gray-300 w-25 rounded-lg px-1 py-1 ${
+                  className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${
                     federalModalOpen ? "border-2 border-blue-500" : ""
                   }`}
                 >
@@ -367,10 +384,10 @@ export default function DailyProduction() {
               </th>
 
               {/* State Govt Haulage Fee */}
-              <th className="px-1 py-2">
+              <th className="px-1 py-2 w-50">
                 <button
                   onClick={() => setStateModalOpen(true)}
-                  className={`hover:bg-gray-300 w-25 rounded-lg px-1 py-1 ${
+                  className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${
                     stateModalOpen ? "border-2 border-blue-500" : ""
                   }`}
                 >
@@ -379,7 +396,7 @@ export default function DailyProduction() {
               </th>
 
               {/* 5% MoU */}
-              <th className="px-2 py-2">
+              <th className="px-2 py-2 w-35">
                 <button
                   onClick={() => setMouModalOpen(true)}
                   className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${
@@ -391,7 +408,7 @@ export default function DailyProduction() {
               </th>
 
               {/* Total */}
-              <th className="px-2 py-2">
+              <th className="px-2 py-2 w-30">
                 <button
                   onClick={() => setTotalModalOpen(true)}
                   className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${
@@ -403,121 +420,139 @@ export default function DailyProduction() {
               </th>
 
               {/* Remarks */}
-              <th className="px-2 py-2"><select
-                value={filters.remarks}
-                onChange={(e) => setFilters({ ...filters, remarks: e.target.value })}
-                className="border rounded-lg px-2 py-1 text-sm"
+              <th className="px-2 py-2 w-30">
+                <select
+                  value={filters.remarks}
+                  onChange={(e) =>
+                    setFilters({ ...filters, remarks: e.target.value })
+                  }
+                  className="border w-21 rounded-lg px-1 py-1 text-sm"
                 >
-                <option value="">Remarks</option>
-                {/* Hardcoded options from image */}
-                <option value="Paid">Paid</option>
-                <option value="Nil">Nil</option>
+                  <option value="">Remarks</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Nill">Nill</option>
                 </select>
               </th>
 
               {/* Actions */}
-              <th className="px-2 py-2">Actions</th>
+              <th className="px-1 py-2 w-20">Actions</th>
             </tr>
           </thead>
-
           <tbody>
-            {filteredItems.map((item) => (
-              <tr
-                key={item.id}
-                className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
-              >
-                <td className="px-2 py-2">{item.id}</td>
+              {visibleItems.map((item) => (
+                <tr
+                  key={item.id}
+                  className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
+                >
+                  <td className="px-2 py-2">{item.id}</td>
 
-                <td className="px-2 py-2">
-                  {editingRowId === item.id ? (
-                    <input
-                      type="date"
-                      value={item.Date}
-                      onChange={(e) => handleFieldChange(item.id, "Date", e.target.value)}
-                      className="border rounded px-2 py-1 w-full"
-                    />
-                  ) : (
-                    item.Date
-                  )}
-                </td>
+                  <td className="px-2 py-2">
+                    {editingRowId === item.id ? (
+                      <input
+                        type="date"
+                        value={item.Date}
+                        onChange={(e) =>
+                          handleFieldChange(item.id, "Date", e.target.value)
+                        }
+                        className="border rounded px-2 py-1 w-full"
+                      />
+                    ) : (
+                      item.Date
+                    )}
+                  </td>
 
-                <td className="px-2 py-2">
-                  {editingRowId === item.id ? (
-                    <input
-                      type="number"
-                      value={item.Trucks}
-                      onChange={(e) =>
-                        handleFieldChange(item.id, "Trucks", e.target.value)
-                      }
-                      className="border rounded px-2 py-1 w-25"
-                    />
-                  ) : (
-                    item.Trucks
-                  )}
-                </td>
+                  <td className="px-2 py-2">
+                    {editingRowId === item.id ? (
+                      <input
+                        type="number"
+                        value={item.Trucks}
+                        onChange={(e) =>
+                          handleFieldChange(item.id, "Trucks", e.target.value)
+                        }
+                        className="border rounded px-2 py-1 w-25"
+                      />
+                    ) : (
+                      item.Trucks
+                    )}
+                  </td>
 
-                <td className="px-2 py-2 w-25">{item.Quantity}</td>
+                  <td className="px-2 py-2">{fmt(item.FederalRoyalty)}</td>
+                  <td className="px-2 py-2">{fmt(item.StateHaulage)}</td>
+                  <td className="px-2 py-2">{item.MoU.toFixed(2)}</td>
+                  <td className="px-2 py-2">{fmt(item.Total)}</td>
 
-                <td className="px-2 py-2">{fmt(item.FederalRoyalty)}</td>
+                  <td className="px-2 py-2">
+                    {editingRowId === item.id ? (
+                      <select
+                        value={item.Remarks}
+                        onChange={(e) =>
+                          handleFieldChange(item.id, "Remarks", e.target.value)
+                        }
+                        className="border rounded px-1 py-1 w-auto"
+                      >
+                        <option value="">Select</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Nill">Nill</option>
+                      </select>
+                    ) : (
+                      item.Remarks || "-"
+                    )}
+                  </td>
 
-                <td className="px-2 py-2">{fmt(item.StateHaulage)}</td>
+                  <td className="px-2 py-2 flex gap-1">
+                    {editingRowId === item.id ? (
+                      <>
+                        <button
+                          onClick={() => handleSaveRow(item.id)}
+                          className="bg-green-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-600"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600"
+                        >
+                          <Trash className="w-3 h-3" />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingRowId(item.id);
+                          setOriginalItem(item);
+                        }}
+                        className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
 
-                <td className="px-2 py-2">{item.MoU.toFixed(2)}</td>
-
-                <td className="px-2 py-2">{fmt(item.Total)}</td>
-
-                <td className="px-2 py-2">
-                  {editingRowId === item.id ? (
-                    <select
-                      value={item.Remarks}
-                      onChange={(e) => handleFieldChange(item.id, "Remarks", e.target.value)}
-                      className="border rounded px-2 py-1 w-full"
-                    >
-                      <option value="">Select</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Nil">Nil</option>
-                    </select>
-                  ) : (
-                    item.Remarks || "-"
-                  )}
-                </td>
-
-                <td className="px-2 py-2 flex gap-2">
-                  {editingRowId === item.id ? (
-                    <button
-                      onClick={handleSaveRow}
-                      className="bg-green-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-green-600"
-                    >
-                      Save
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setEditingRowId(item.id)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
-                    >
-                      Edit
-                    </button>
-                  )}
-
+              {/* Empty state */}
+              {visibleItems.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="px-2 py-6 text-center text-gray-500">
+                    No records found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="bg-gray-100 font-semibold text-xs sm:text-sm">
+                    {visibleItems.length < filteredItems.length && (
+                <div className="text-center py-4">
                   <button
-                    onClick={() => handleDelete(item.id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600"
+                    onClick={() => setVisibleCount((prev) => prev + 10)}
+                    className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs hover:bg-gray-700 transition"
                   >
-                    <Trash className="w-3 h-3" />
+                    View More
                   </button>
-                </td>
+                </div>
+              )}
               </tr>
-            ))}
-
-            {/* empty state */}
-            {filteredItems.length === 0 && (
-              <tr>
-                <td colSpan={10} className="px-2 py-6 text-center text-gray-500">
-                  No records found
-                </td>
-              </tr>
-            )}
-          </tbody>
+            </tfoot>
         </table>
       </div>
 
@@ -1008,6 +1043,33 @@ export default function DailyProduction() {
                 }
                 setTotalModalOpen(false);
               }} className="px-2 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700">Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-80 text-center">
+            <p className="text-gray-800 mb-4">
+              {pendingAction.type === "save"
+                ? "Save changes to this row?"
+                : "Are you sure you want to delete this row?"}
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={confirmAction}
+                className="bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="bg-gray-300 text-gray-800 px-4 py-1 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

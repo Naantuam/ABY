@@ -1,11 +1,11 @@
 import { useState } from "react";
-import {Download} from "lucide-react";
+import {Download, Trash} from "lucide-react";
 
 
 export default function ProjectList() {
   const [projects, setProjects] = useState([
     {
-      id: "Pr-1",
+      id: "1",
       name: "Building Magazine house",
       location: "Jos",
       startDate: "2022-05-15",
@@ -14,7 +14,7 @@ export default function ProjectList() {
       status: "Completed",
     },
     {
-      id: "Pr-2",
+      id: "2",
       name: "Opening New Site",
       location: "Taraba",
       startDate: "2022-05-15",
@@ -23,7 +23,7 @@ export default function ProjectList() {
       status: "Active",
     },
     {
-      id: "Pr-3",
+      id: "3",
       name: "Fencing Yard",
       location: "Bauchi",
       startDate: "2022-05-15",
@@ -32,7 +32,7 @@ export default function ProjectList() {
       status: "Cancelled",
     },
     {
-      id: "Pr-4",
+      id: "4",
       name: "Concrete Mixer",
       location: "Gombe",
       startDate: "2022-05-15",
@@ -41,7 +41,7 @@ export default function ProjectList() {
       status: "Active",
     },
     {
-      id: "Pr-5",
+      id: "5",
       name: "Building Down tower",
       location: "Kaduna",
       startDate: "2021-05-15",
@@ -59,6 +59,9 @@ export default function ProjectList() {
   }
 
   const [editingRowId, setEditingRowId] = useState(null);
+  const [originalItem, setOriginalItem] = useState(null); // store item before edit
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null); // "save" or "delete"
 
   const [filters, setFilters] = useState({ 
     status: "", 
@@ -81,6 +84,8 @@ export default function ProjectList() {
   // Range states
   const [snRange, setSnRange] = useState({ min: "", max: "" });
   const [budgetRange, setBudgetRange] = useState({ min: "", max: "" });
+
+  const [visibleCount, setVisibleCount] = useState(10); // show 10 rows initially
 
   // 🔹 Status color badges
   const getStatusColor = (status) => {
@@ -207,6 +212,7 @@ const handleAddProject = () => {
   };
   setProjects([...projects, newPr]);
   setEditingRowId(newPr.id); // auto-edit
+  setOriginalItem(newPr);
 };
 
 const handleFieldChange = (id, field, value) => {
@@ -215,8 +221,34 @@ const handleFieldChange = (id, field, value) => {
   ));
 };
 
+const handleDelete = (id) => {
+  const itemToDelete = projects.find((pr) => pr.id === id);
+  setOriginalItem(itemToDelete);
+  setPendingAction({ type: "delete", id });
+  setShowConfirm(true);
+};
+
 const handleSaveRow = (id) => {
-  setEditingRowId(null); // exit edit mode
+  const currentItem = projects.find((pr) => pr.id === id);
+  if (JSON.stringify(currentItem) === JSON.stringify(originalItem)) {
+    // No changes → auto-save
+    setEditingRowId(null);
+    setOriginalItem(null);
+    return;
+  }
+  setPendingAction({ type: "save", id });
+  setShowConfirm(true);
+};
+
+const confirmAction = () => {
+  if (pendingAction.type === "save") {
+    setEditingRowId(null);
+    setOriginalItem(null);
+  } else if (pendingAction.type === "delete") {
+    setProjects((prev) => prev.filter((pr) => pr.id !== pendingAction.id));
+  }
+  setPendingAction(null);
+  setShowConfirm(false);
 };
 
 
@@ -245,7 +277,7 @@ const handleSaveRow = (id) => {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-100 text-left text-gray-600 font-medium">
@@ -357,7 +389,7 @@ const handleSaveRow = (id) => {
             </tr>
           </thead>
           <tbody>
-          {projects.map((pr) => (
+          {[...filteredProjects].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((pr) => (
             <tr key={pr.id} className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm">
               
             {/* ID */}
@@ -473,17 +505,28 @@ const handleSaveRow = (id) => {
               </td>
 
               {/* Edit / Save button */}
-              <td className="px-2 py-2">
+              <td className="px-2 py-2 flex gap-1">
                 {editingRowId === pr.id ? (
-                  <button
-                    onClick={() => handleSaveRow(pr.id)}
-                    className="bg-green-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-green-600"
-                  >
-                    Save
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleSaveRow(pr.id)}
+                      className="bg-green-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-600"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => handleDelete(pr.id)}
+                      className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600"
+                    >
+                      <Trash className="w-3 h-3" />
+                    </button>
+                  </>
                 ) : (
                   <button
-                    onClick={() => setEditingRowId(pr.id)}
+                    onClick={() => {
+                      setEditingRowId(pr.id);
+                      setOriginalItem(pr);
+                    }}
                     className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
                   >
                     Edit
@@ -492,7 +535,30 @@ const handleSaveRow = (id) => {
               </td>
             </tr>
           ))}
+
+          {/* Empty state */}
+          {[...filteredProjects].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).length === 0 && (
+            <tr>
+              <td colSpan={8} className="px-2 py-6 text-center text-gray-500">
+                No projects found
+              </td>
+            </tr>
+          )}
         </tbody>
+        <tfoot>
+          <tr className="bg-gray-100 font-semibold text-xs sm:text-sm">
+            {visibleCount < filteredProjects.length && (
+              <td colSpan={8} className="px-2 py-4 text-center">
+                <button
+                  onClick={() => setVisibleCount((prev) => prev + 10)}
+                  className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs hover:bg-gray-700 transition"
+                >
+                  View More
+                </button>
+              </td>
+            )}
+          </tr>
+        </tfoot>
       </table>
       </div>
 
@@ -746,6 +812,33 @@ const handleSaveRow = (id) => {
                 className="px-2 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
               >
                 Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-80 text-center">
+            <p className="text-gray-800 mb-4">
+              {pendingAction.type === "save"
+                ? "Save changes to this row?"
+                : "Are you sure you want to delete this row?"}
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={confirmAction}
+                className="bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="bg-gray-300 text-gray-800 px-4 py-1 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
               </button>
             </div>
           </div>

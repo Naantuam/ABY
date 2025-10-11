@@ -2,7 +2,6 @@ import { Routes, Route } from "react-router-dom";
 import "./App.css";
 
 import Login from "./UserDetail/Login";
-import Register from "./UserDetail/Register";
 import MFA from "./UserDetail/MFA";
 import ForgotPassword from "./UserDetail/ForgotPassword";
 
@@ -32,7 +31,6 @@ function App() {
       <Routes>
         {/* Auth routes */}
         <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/mfa" element={<MFA />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 

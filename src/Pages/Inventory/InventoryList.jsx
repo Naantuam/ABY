@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Trash } from "lucide-react";
 
 export default function InventoryList() {
   const [items, setItems] = useState([
     {
-      id: "I-01",
+      id: "1",
       name: "Steel Beams",
       category: "Structural",
       quantity: "250 Pieces",
@@ -12,7 +12,7 @@ export default function InventoryList() {
       status: "In Stock",
     },
     {
-      id: "I-02",
+      id: "2",
       name: "Empty Bags",
       category: "Materials",
       quantity: "1200 Bags",
@@ -20,7 +20,7 @@ export default function InventoryList() {
       status: "In Stock",
     },
     {
-      id: "I-03",
+      id: "3",
       name: "Welding Electrodes",
       category: "Electrical",
       quantity: "85 Sheets",
@@ -28,7 +28,7 @@ export default function InventoryList() {
       status: "In Stock",
     },
     {
-      id: "I-04",
+      id: "4",
       name: "Electric Wiring",
       category: "Electrical",
       quantity: "350 Meters",
@@ -36,7 +36,7 @@ export default function InventoryList() {
       status: "Low Stock",
     },
     {
-      id: "I-05",
+      id: "5",
       name: "PVC pipes",
       category: "Plumbing",
       quantity: "45 Pieces",
@@ -53,6 +53,9 @@ export default function InventoryList() {
   }
 
   const [editingRowId, setEditingRowId] = useState(null);
+  const [originalItem, setOriginalItem] = useState(null); // store item before edit
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null); // "save" or "delete"
 
   const [filters, setFilters] = useState({
     sn: "",
@@ -71,6 +74,8 @@ export default function InventoryList() {
 
   const [snRange, setSnRange] = useState({ min: "", max: "" });
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  const [visibleCount, setVisibleCount] = useState(10); // show 10 rows initially
 
 
   // ------------------ Filtering Logic -------------------
@@ -158,6 +163,7 @@ export default function InventoryList() {
   };
   setItems([...items, newItem]);
   setEditingRowId(newItem.id); // immediately editable
+  setOriginalItem(newItem);
 };
 
   const handleFieldChange = (id, field, value) => {
@@ -166,8 +172,34 @@ export default function InventoryList() {
   ));
 };
 
- const handleSaveRow = (id) => {
-  setEditingRowId(null); // finish editing
+const handleDelete = (id) => {
+  const itemToDelete = items.find((it) => it.id === id);
+  setOriginalItem(itemToDelete);
+  setPendingAction({ type: "delete", id });
+  setShowConfirm(true);
+};
+
+const handleSaveRow = (id) => {
+  const currentItem = items.find((it) => it.id === id);
+  if (JSON.stringify(currentItem) === JSON.stringify(originalItem)) {
+    // No changes → auto-save
+    setEditingRowId(null);
+    setOriginalItem(null);
+    return;
+  }
+  setPendingAction({ type: "save", id });
+  setShowConfirm(true);
+};
+
+const confirmAction = () => {
+  if (pendingAction.type === "save") {
+    setEditingRowId(null);
+    setOriginalItem(null);
+  } else if (pendingAction.type === "delete") {
+    setItems((prev) => prev.filter((it) => it.id !== pendingAction.id));
+  }
+  setPendingAction(null);
+  setShowConfirm(false);
 };
 
 
@@ -193,7 +225,7 @@ return (
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full border-collapse text-sm">
             <thead>
             <tr className="bg-gray-100 text-left text-gray-600 font-medium">
@@ -263,7 +295,7 @@ return (
             </tr>
             </thead>
             <tbody>
-            {filteredItems.map((item) => (
+            {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((item) => (
               <tr
                 key={item.id}
                 className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
@@ -362,17 +394,28 @@ return (
                 </td>
 
                 {/* Edit / Save */}
-                <td className="px-2 py-2">
+                <td className="px-2 py-2 flex gap-1">
                   {editingRowId === item.id ? (
-                    <button
-                      onClick={() => handleSaveRow(item.id)}
-                      className="bg-green-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-green-600"
-                    >
-                      Save
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleSaveRow(item.id)}
+                        className="bg-green-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-600"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600"
+                      >
+                        <Trash className="w-3 h-3" />
+                      </button>
+                    </>
                   ) : (
                     <button
-                      onClick={() => setEditingRowId(item.id)}
+                      onClick={() => {
+                        setEditingRowId(item.id);
+                        setOriginalItem(item);
+                      }}
                       className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
                     >
                       Edit
@@ -381,7 +424,30 @@ return (
                 </td>
               </tr>
             ))}
+
+            {/* Empty state */}
+            {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-2 py-6 text-center text-gray-500">
+                  No items found
+                </td>
+              </tr>
+            )}
           </tbody>
+          <tfoot>
+            <tr className="bg-gray-100 font-semibold text-xs sm:text-sm">
+              {visibleCount < filteredItems.length && (
+                <td colSpan={7} className="px-2 py-4 text-center">
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + 10)}
+                    className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs hover:bg-gray-700 transition"
+                  >
+                    View More
+                  </button>
+                </td>
+              )}
+            </tr>
+          </tfoot>
 
         </table>
         </div>
@@ -619,6 +685,33 @@ return (
                   className="px-2 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
                 >
                   Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Modal */}
+        {showConfirm && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-xl shadow-lg w-80 text-center">
+              <p className="text-gray-800 mb-4">
+                {pendingAction.type === "save"
+                  ? "Save changes to this row?"
+                  : "Are you sure you want to delete this row?"}
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={confirmAction}
+                  className="bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600"
+                >
+                  Confirm
+                </button>
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="bg-gray-300 text-gray-800 px-4 py-1 rounded-lg hover:bg-gray-400"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

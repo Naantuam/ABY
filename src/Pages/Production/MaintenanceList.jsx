@@ -1,38 +1,38 @@
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Trash } from "lucide-react";
 
 export default function MaintenanceList() {
   // 🔹 Dummy items
   const [items, setItems] = useState([
     {
-      id: "M-01",
+      id: "1",
       Date: "2025-06-25",
       Description: "Steel Beams",
       Quantity: "150 Units",
       Income: 120000,
       Expenditure: 120000,
       Bal: 120000,
-      Rate: "5%",
+      Rate: "5",
     },
     {
-      id: "M-02",
+      id: "2",
       Date: "2025-06-25",
       Description: "Steel Beams",
       Quantity: "150 Units",
       Income: 120000,
       Expenditure: 120000,
       Bal: 120000,
-      Rate: "5%",
+      Rate: "5",
     },
     {
-      id: "M-03",
+      id: "3",
       Date: "2025-06-25",
       Description: "Steel Beams",
       Quantity: "150 Units",
       Income: 120000,
       Expenditure: 120000,
       Bal: 120000,
-      Rate: "5%",
+      Rate: "5",
     },
   ]);
 
@@ -58,6 +58,9 @@ export default function MaintenanceList() {
     expenditureMax: "",
   });
   const [editingRowId, setEditingRowId] = useState(null);
+  const [originalItem, setOriginalItem] = useState(null); // store item before edit
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null); // "save" or "delete"
 
   const [snModalOpen, setSnModalOpen] = useState(false);
   const [dateModalOpen, setDateModalOpen] = useState(false);
@@ -72,6 +75,8 @@ export default function MaintenanceList() {
   // Expenditure filter modal
   const [expenditureModalOpen, setExpenditureModalOpen] = useState(false);
   const [expenditureRange, setExpenditureRange] = useState({ min: "", max: "" });
+
+  const [visibleCount, setVisibleCount] = useState(10); // show 10 rows initially
 
   // Filtering logic
 const filteredItems = items.filter((item) => {
@@ -169,6 +174,7 @@ const filteredItems = items.filter((item) => {
   };
   setItems([...items, newItem]);
   setEditingRowId(newItem.id);
+  setOriginalItem(newItem);
 };
 
 
@@ -178,8 +184,34 @@ const filteredItems = items.filter((item) => {
   ));
 };
 
- const handleSaveRow = (id) => {
-  setEditingRowId(null);
+const handleDelete = (id) => {
+  const itemToDelete = items.find((it) => it.id === id);
+  setOriginalItem(itemToDelete);
+  setPendingAction({ type: "delete", id });
+  setShowConfirm(true);
+};
+
+const handleSaveRow = (id) => {
+  const currentItem = items.find((it) => it.id === id);
+  if (JSON.stringify(currentItem) === JSON.stringify(originalItem)) {
+    // No changes → auto-save
+    setEditingRowId(null);
+    setOriginalItem(null);
+    return;
+  }
+  setPendingAction({ type: "save", id });
+  setShowConfirm(true);
+};
+
+const confirmAction = () => {
+  if (pendingAction.type === "save") {
+    setEditingRowId(null);
+    setOriginalItem(null);
+  } else if (pendingAction.type === "delete") {
+    setItems((prev) => prev.filter((it) => it.id !== pendingAction.id));
+  }
+  setPendingAction(null);
+  setShowConfirm(false);
 };
 
   return (
@@ -266,7 +298,7 @@ const filteredItems = items.filter((item) => {
             </tr>
           </thead>
           <tbody>
-            {filteredItems.map((item) => (
+            {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((item) => (
               <tr
                 key={item.id + item.Date}
                 className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
@@ -381,17 +413,28 @@ const filteredItems = items.filter((item) => {
                 </td>
 
                 {/* Edit/Save Button */}
-                <td className="px-2 py-2">
+                <td className="px-2 py-2 flex gap-1">
                   {editingRowId === item.id ? (
-                    <button
-                      onClick={() => handleSaveRow(item.id)}
-                      className="bg-green-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-green-600"
-                    >
-                      Save
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleSaveRow(item.id)}
+                        className="bg-green-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-600"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600"
+                      >
+                        <Trash className="w-3 h-3" />
+                      </button>
+                    </>
                   ) : (
                     <button
-                      onClick={() => setEditingRowId(item.id)}
+                      onClick={() => {
+                        setEditingRowId(item.id);
+                        setOriginalItem(item);
+                      }}
                       className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
                     >
                       Edit
@@ -400,7 +443,30 @@ const filteredItems = items.filter((item) => {
                 </td>
               </tr>
             ))}
+
+            {/* Empty state */}
+            {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).length === 0 && (
+              <tr>
+                <td colSpan={9} className="px-2 py-6 text-center text-gray-500">
+                  No records found
+                </td>
+              </tr>
+            )}
           </tbody>
+          <tfoot>
+            <tr className="bg-gray-100 font-semibold text-xs sm:text-sm">
+              {visibleCount < filteredItems.length && (
+                <td colSpan={9} className="px-2 py-4 text-center">
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + 10)}
+                    className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs hover:bg-gray-700 transition"
+                  >
+                    View More
+                  </button>
+                </td>
+              )}
+            </tr>
+          </tfoot>
         </table>
       </div>
 
@@ -857,6 +923,32 @@ const filteredItems = items.filter((item) => {
   </div>
 )}
 
+      {/* Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-80 text-center">
+            <p className="text-gray-800 mb-4">
+              {pendingAction.type === "save"
+                ? "Save changes to this row?"
+                : "Are you sure you want to delete this row?"}
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={confirmAction}
+                className="bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="bg-gray-300 text-gray-800 px-4 py-1 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

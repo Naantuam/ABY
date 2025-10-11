@@ -4,7 +4,7 @@ import { Download } from "lucide-react";
 export default function IncidentList() {
   const [Incidents, setIncidents] = useState([
     {
-      id: "INC-001",
+      id: "1",
       date: "2025-09-15",
       project: "Downtown Tower",
       description: "Minor fall from height",
@@ -12,7 +12,7 @@ export default function IncidentList() {
       status: "Reported",
     },
     {
-      id: "INC-002",
+      id: "2",
       date: "2025-09-14",
       project: "Riverside Apartment",
       description: "Power outage on site",
@@ -20,7 +20,7 @@ export default function IncidentList() {
       status: "Resolving",
     },
     {
-      id: "INC-003",
+      id: "3",
       date: "2025-09-13",
       project: "Greenfield Shopping",
       description: "Equipment malfunction",
@@ -28,7 +28,7 @@ export default function IncidentList() {
       status: "Resolved",
     },
     {
-      id: "INC-004",
+      id: "4",
       date: "2025-09-10",
       project: "Hillside Residential",
       description: "Near-miss with excavation equipment",
@@ -36,7 +36,7 @@ export default function IncidentList() {
       status: "Reported",
     },
     {
-      id: "INC-005",
+      id: "5",
       date: "2025-09-08",
       project: "Downtown Tower",
       description: "Small fire in a storage unit",
@@ -72,6 +72,8 @@ export default function IncidentList() {
   // For ranges
   const [idRange, setIdRange] = useState({ min: "", max: "" });
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  const [visibleCount, setVisibleCount] = useState(10); // show 10 rows initially
 
   // Inside IncidentList component, right after state declarations:
   const isEditingExisting = editing && Incidents.find(it => it.id === editing.id);
@@ -200,7 +202,7 @@ return (
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-100 text-left text-gray-600 font-medium">
@@ -263,7 +265,7 @@ return (
             </tr>
           </thead>
           <tbody>
-            {filteredIncidents.map((incident) => (
+            {[...filteredIncidents].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((incident) => (
               <tr
                 key={incident.id}
                 className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
@@ -292,7 +294,30 @@ return (
                 </td>
               </tr>
             ))}
+
+            {/* Empty state */}
+            {[...filteredIncidents].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-2 py-6 text-center text-gray-500">
+                  No incidents found
+                </td>
+              </tr>
+            )}
           </tbody>
+          <tfoot>
+            <tr className="bg-gray-100 font-semibold text-xs sm:text-sm">
+              {visibleCount < filteredIncidents.length && (
+                <td colSpan={7} className="px-2 py-4 text-center">
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + 10)}
+                    className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs hover:bg-gray-700 transition"
+                  >
+                    View More
+                  </button>
+                </td>
+              )}
+            </tr>
+          </tfoot>
         </table>
       </div>
 

@@ -5,7 +5,7 @@ import {Download } from "lucide-react";
 export default function EquipmentList() {
   const [equipment, setEquipment] = useState([
     {
-      id: "Eq-1",
+      id: "1",
       name: "Excavator CAT 320",
       type: "Heavy Machinery",
       date: "2022-05-10",
@@ -14,7 +14,7 @@ export default function EquipmentList() {
       image: "https://via.placeholder.com/40",
     },
     {
-      id: "Eq-2",
+      id: "2",
       name: "Bulldozer Komatsu D65",
       type: "Heavy Machinery",
       date: "2022-05-15",
@@ -23,7 +23,7 @@ export default function EquipmentList() {
       image: "https://via.placeholder.com/40",
     },
     {
-      id: "Eq-3",
+      id: "3",
       name: "Crane Liebherr 200",
       type: "Heavy Machinery",
       date: "2022-05-15",
@@ -32,7 +32,7 @@ export default function EquipmentList() {
       image: "https://via.placeholder.com/40",
     },
     {
-      id: "Eq-4",
+      id: "4",
       name: "Concrete Mixer",
       type: "Heavy Machinery",
       date: "2022-05-15",
@@ -41,7 +41,7 @@ export default function EquipmentList() {
       image: "https://via.placeholder.com/40",
     },
     {
-      id: "Eq-5",
+      id: "5",
       name: "Forklift Toyota",
       type: "Heavy Machinery",
       date: "2022-05-1",
@@ -90,6 +90,8 @@ function convertToCSV(data) {
   const [snRange, setSnRange] = useState({ min: "", max: "" });
   const [costRange, setCostRange] = useState({ min: "", max: "" });
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  const [visibleCount, setVisibleCount] = useState(10); // show 10 rows initially
 
 
   // 🔹 Status color badges
@@ -239,7 +241,7 @@ if (minNum && maxNum) {
       </div>
 
         {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-100 text-left text-gray-600 font-medium">
@@ -321,7 +323,7 @@ if (minNum && maxNum) {
 
 
           <tbody>
-            {filteredEquipment.map((eq) => (
+            {[...filteredEquipment].sort((a, b) => Number(b.id.replace(/\D/g, "")) - Number(a.id.replace(/\D/g, ""))).slice(0, visibleCount).map((eq) => (
               <tr key={eq.id} className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm">
                 <td className="px-2 py-2">{eq.id}</td>
                 <td className="px-2 py-2">{eq.name}</td>
@@ -345,7 +347,30 @@ if (minNum && maxNum) {
                 </td>
               </tr>
             ))}
+
+            {/* Empty state */}
+            {[...filteredEquipment].sort((a, b) => Number(b.id.replace(/\D/g, "")) - Number(a.id.replace(/\D/g, ""))).slice(0, visibleCount).length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-2 py-6 text-center text-gray-500">
+                  No equipment found
+                </td>
+              </tr>
+            )}
           </tbody>
+          <tfoot>
+            <tr className="bg-gray-100 font-semibold text-xs sm:text-sm">
+              {visibleCount < filteredEquipment.length && (
+                <td colSpan={7} className="px-2 py-4 text-center">
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + 10)}
+                    className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs hover:bg-gray-700 transition"
+                  >
+                    View More
+                  </button>
+                </td>
+              )}
+            </tr>
+          </tfoot>
         </table>
       </div>
 

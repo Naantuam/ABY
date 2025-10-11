@@ -7,7 +7,7 @@ export default function RiskList() {
   // ────────────────────────────────
   const [risks, setRisks] = useState([
     {
-      id: "RA-001",
+      id: "1",
       date: "2025-06-25",
       project: "Downtown Tower",
       hazardType: "Working at height",
@@ -21,7 +21,7 @@ export default function RiskList() {
       status: "Mitigated",
     },
     {
-      id: "RA-002",
+      id: "2",
       date: "2025-06-25",
       project: "Riverside Apartment",
       hazardType: "Heavy Machinery",
@@ -35,7 +35,7 @@ export default function RiskList() {
       status: "Pending",
     },
     {
-      id: "RA-003",
+      id: "3",
       date: "2025-06-16",
       project: "Greenfield Shopping",
       hazardType: "Electrical Work",
@@ -49,7 +49,7 @@ export default function RiskList() {
       status: "Mitigated",
     },
     {
-      id: "RA-004",
+      id: "4",
       date: "2024-06-25",
       project: "Hillside Residential",
       hazardType: "Excavation",
@@ -63,7 +63,7 @@ export default function RiskList() {
       status: "Mitigated",
     },
     {
-      id: "RA-005",
+      id: "5",
       date: "2023-06-23",
       project: "Building Down tower",
       hazardType: "PVC pipes",
@@ -108,6 +108,8 @@ export default function RiskList() {
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [idRange, setIdRange] = useState({ min: "", max: "" });
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  const [visibleCount, setVisibleCount] = useState(10); // show 10 rows initially
 
   // ────────────────────────────────
   // 4️⃣ Computed Scores & Status
@@ -271,7 +273,7 @@ export default function RiskList() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-100 text-left text-gray-600 font-medium">
@@ -320,7 +322,7 @@ export default function RiskList() {
             </tr>
           </thead>
           <tbody>
-            {filteredRisks.map((risk) => (
+            {[...filteredRisks].sort((a, b) => Number(b.id.replace(/\D/g, "")) - Number(a.id.replace(/\D/g, ""))).slice(0, visibleCount).map((risk) => (
               <tr
                 key={risk.id}
                 className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
@@ -354,7 +356,30 @@ export default function RiskList() {
                 </td>
               </tr>
             ))}
+
+            {/* Empty state */}
+            {[...filteredRisks].sort((a, b) => Number(b.id.replace(/\D/g, "")) - Number(a.id.replace(/\D/g, ""))).slice(0, visibleCount).length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-2 py-6 text-center text-gray-500">
+                  No risks found
+                </td>
+              </tr>
+            )}
           </tbody>
+          <tfoot>
+            <tr className="bg-gray-100 font-semibold text-xs sm:text-sm">
+              {visibleCount < filteredRisks.length && (
+                <td colSpan={6} className="px-2 py-4 text-center">
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + 10)}
+                    className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs hover:bg-gray-700 transition"
+                  >
+                    View More
+                  </button>
+                </td>
+              )}
+            </tr>
+          </tfoot>
         </table>
       </div>
       
