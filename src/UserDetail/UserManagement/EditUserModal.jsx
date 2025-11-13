@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { UserIcon, ShieldCheckIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 export default function EditUserModal({
   selectedUser,
@@ -9,6 +9,7 @@ export default function EditUserModal({
   setSelectedUser,
   handleSaveUser,
   handleRevokePermissions,
+  handleDeleteUser,
   handleChangeCategory,
 }) {
   if (!selectedUser) return null;
@@ -127,7 +128,7 @@ export default function EditUserModal({
                             </label>
                             <input
                               type="email"
-                              value={editableUser.email}
+                              value={editableUser.email || ""}
                               onChange={(e) =>
                                 setEditableUser({ ...editableUser, email: e.target.value })
                               }
@@ -143,7 +144,7 @@ export default function EditUserModal({
                             </label>
                             <input
                               type="text"
-                              value={editableUser.phone}
+                               value={editableUser.phone || ""}
                               onChange={(e) =>
                                 setEditableUser({ ...editableUser, phone: e.target.value })
                               }
@@ -159,7 +160,7 @@ export default function EditUserModal({
                             </label>
                             <input
                               type="text"
-                              value={editableUser.department}
+                              value={editableUser.department || ""}
                               onChange={(e) =>
                                 setEditableUser({ ...editableUser, department: e.target.value })
                               }
@@ -169,7 +170,7 @@ export default function EditUserModal({
                           </div>
 
                           {/* Role */}
-                          <div>
+                          {/* <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">
                               Role
                             </label>
@@ -182,7 +183,7 @@ export default function EditUserModal({
                               className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
                               placeholder="Manager"
                             />
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </div>
@@ -204,8 +205,8 @@ export default function EditUserModal({
                         className="w-40 px-2 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
                       >
                         {categories.map((c, i) => (
-                          <option key={i} value={c}>
-                            {c}
+                          <option key={i} value={c.key}>
+                            {c.label}
                           </option>
                         ))}
                       </select>
@@ -267,6 +268,13 @@ export default function EditUserModal({
         </div>
          {/* ==== Footer Buttons ==== */}
         <div className="flex justify-end gap-3">
+          <button
+            onClick={() => handleDeleteUser(editableUser.id)}
+            className="px-4 py-2 flex items-center gap-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700"
+          >
+            <TrashIcon className="h-4 w-4" />
+            Delete User
+          </button>
           <button
             onClick={() => setSelectedUser(null)}
             className="px-2 py-2 rounded-lg border text-sm hover:bg-gray-100"

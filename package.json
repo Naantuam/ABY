@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "VITE_API_URL=http://localhost:5000 vite",
+    "dev:render": "VITE_API_URL=https://abs-software-v2.onrender.com vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
