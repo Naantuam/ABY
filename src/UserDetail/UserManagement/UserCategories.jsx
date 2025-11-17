@@ -89,49 +89,36 @@ export default function UserCategories() {
     // and the backend expects this string key.
     
     const newUser = {
-        name: form.name.value,
+        username: form.name.value, 
         email: form.email.value,
-        phone: form.phone.value,
+        phone_number: form.phone.value, // Changed from 'phone'
         department: form.department.value,
-        
-        // ✅ FIX 1: Provide the missing 'username' field (using email is common)
-        username: form.email.value, 
-        
-        // ✅ FIX 2: Since role is a string key, use the selected category name.
-        role: selectedCategory.key
+        role: selectedCategory.key // 'role' is the string key
     };
 
     try {
-        // Double-check the payload before sending (optional, but helpful for debugging)
         console.log("Sending User Payload:", newUser); 
         
         await api.post('/api/users/', newUser); 
         
-        alert(`User ${newUser.name} created for role ${selectedCategory.label}.`);
+        alert(`User ${newUser.username} created for role ${selectedCategory.label}.`);
         closeAddUserModal();
         fetchData(); // Refresh list to show the new user
     } catch(err) {
         console.error("Failed to create user:", err);
 
-        // Extract the specific validation errors from the API response
         const apiErrors = err.response?.data;
-        
         let errorMessage = "Could not create the new user.";
 
         if (apiErrors) {
-            // Log the full error object for detailed debugging
             console.error("API Validation Errors:", apiErrors);
-            
-            // Try to construct a user-friendly message
             const errorKeys = Object.keys(apiErrors);
             if (errorKeys.length > 0) {
-                // Example: "username: This field must be unique. role: Invalid key."
                 errorMessage = errorKeys.map(key => 
                     `${key}: ${Array.isArray(apiErrors[key]) ? apiErrors[key].join(' ') : apiErrors[key]}`
                 ).join(' ');
             }
         }
-
         alert(`Error: ${errorMessage}`);
     }
   };
@@ -224,16 +211,10 @@ export default function UserCategories() {
           </button>
         </div>
       ) : (
-        // Selected Category Table
+       // Selected Category Table
         <div className="bg-white rounded-xl shadow-md p-4">
           <div className="flex items-center gap-2 mb-4">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className="flex items-center gap-1 text-gray-600 hover:text-gray-800"
-            >
-              <ArrowLeftIcon className="h-5 w-5" />
-              <span>Back</span>
-            </button>
+            {/* ... (back button and title) ... */}
             <h2 className="text-base font-semibold ml-4">{selectedCategory.label}</h2>
           </div>
           <div className="overflow-x-auto">
@@ -244,7 +225,6 @@ export default function UserCategories() {
                   <th className="border px-2 py-2 text-left text-sm">Emails</th>
                   <th className="border px-2 py-2 text-left text-sm">Phone No</th>
                   <th className="border px-2 py-2 text-left text-sm">Department</th>
-                  {/* <th className="border px-2 py-2 text-left text-sm">Role</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -254,17 +234,18 @@ export default function UserCategories() {
                     onClick={() => setSelectedUser(u)}
                     className="hover:bg-gray-50 cursor-pointer text-xs md:text-sm"
                   >
-                    <td className="border px-2 py-2">{u.name}</td>
+                    {/* ✅ FIX: Changed 'u.name' to 'u.username' */}
+                    <td className="border px-2 py-2">{u.username}</td>
                     <td className="border px-2 py-2">{u.email}</td>
-                    <td className="border px-2 py-2">{u.phone}</td>
+                    {/* ✅ FIX: Changed 'u.phone' to 'u.phone_number' */}
+                    <td className="border px-2 py-2">{u.phone_number}</td>
                     <td className="border px-2 py-2">{u.department}</td>
-                    {/* <td className="border px-2 py-2">{u.role}</td> */}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
+          
           {/* Add Staff Button */}
                 <div className="flex justify-end mt-4">
                 <button
