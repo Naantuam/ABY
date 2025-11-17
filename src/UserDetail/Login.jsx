@@ -21,7 +21,7 @@ const Login = () => {
 
     try {
       // 🔌 API call to Render backend
-      const res = await api.post("/api/auth/login/", form);
+      const res = await api.post("/auth/login/", form);
       const { access, user, refresh } = res.data;
 
       // 💾 Save token for future protected routes
