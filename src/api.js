@@ -44,7 +44,7 @@ api.interceptors.response.use(
         
         // 🚀 Make the refresh token request
         // Note: We use a different endpoint for refreshing
-        const response = await axios.post(`${api.defaults.baseURL}/auth/refresh/`, {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh/`, {
           refresh: refreshToken,
         });
 
