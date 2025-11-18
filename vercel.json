@@ -1,8 +1,11 @@
 {
-  "rewrites": [
+  "version": 3,
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "https://abs-software-v2.onrender.com/api/:path*"
+      "src": "/api/(.*)",
+      "dest": "https://abs-software-v2.onrender.com/$1"
     }
-  ]
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
 }
