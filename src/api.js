@@ -5,11 +5,12 @@ import axios from "axios";
 // Note: We use axios.create() here, not the global `api` instance,
 // because we don't want the interceptors to run on the refresh request itself.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
+
 
 // ✅ Automatically include Authorization header if token exists
 api.interceptors.request.use(
