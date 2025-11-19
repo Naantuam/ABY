@@ -1,11 +1,12 @@
-// src/api.js
 import axios from "axios";
 
+// 1. Define the root URL (Standardize: No trailing slash)
+const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
 // Create a new axios instance.
-// Note: We use axios.create() here, not the global `api` instance,
-// because we don't want the interceptors to run on the refresh request itself.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  // 2. Append '/api' here. This ensures your requests go to ...onrender.com/api/...
+  baseURL: `${BASE_URL}/api`, 
   headers: {
     "Content-Type": "application/json",
   },
@@ -44,11 +45,10 @@ api.interceptors.response.use(
         
         // 🚀 Make the refresh token request
         // Note: We use a different endpoint for refreshing
-        const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh/`, {
+        // inside the interceptor...
+        const response = await axios.post(`${BASE_URL}/api/auth/refresh/`, {
           refresh: refreshToken,
         });
-
-
         const newAccessToken = response.data.access;
 
         // 💾 Save new token
