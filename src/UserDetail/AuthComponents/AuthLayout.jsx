@@ -30,7 +30,7 @@ const AuthLayout = ({ children }) => {
             {children}
         </div>
       </div>
-      <div className="md:hidden flex items-center justify-center w-full h-full z-10">
+      <div className="md:hidden flex items-center justify-center w-full min-h-screen z-10 p-4">
           {children}
       </div>
     </div>
