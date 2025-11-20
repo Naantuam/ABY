@@ -3,7 +3,12 @@ import React from "react";
 const AuthLayout = ({ children }) => {
   return (
     // 1. Outermost Layer: Your original gradient color (acts as a base or fallback)
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-400 to-blue-800">
+    <div className="
+      min-h-screen flex items-center justify-center 
+      bg-gradient-to-b sm:from-sky-400 sm:to-blue-800
+    from-blue-700 to-blue-950
+    ">
+
       
       {/* 2. Second Layer (The Fixed Overlay)
         - It's now the fixed container holding the background image.
@@ -30,7 +35,7 @@ const AuthLayout = ({ children }) => {
             {children}
         </div>
       </div>
-      <div className="md:hidden flex justify-center w-full min-h-screen z-10 p-4">
+      <div className="md:hidden flex w-full min-h-screen z-10 pt-4">
           {children}
       </div>
     </div>

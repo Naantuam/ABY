@@ -21,7 +21,7 @@ const Login = () => {
 
     try {
       // 🔌 API call to Render backend
-      const res = await api.post("/api/auth/login/", form);
+      const res = await api.post("/api/users/token/", form);
       const { access, user, refresh } = res.data;
 
       // 💾 Save token for future protected routes
@@ -51,27 +51,50 @@ const Login = () => {
   };
 
 
-  return (
-    <AuthLayout>
-      <AuthCard>
-        <Logo />
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 mt-4">
-          <InputField id="email" label="Email" type="email" placeholder="Enter your email"
-            value={form.email} onChange={handleChange} Icon={Mail} />
-          <InputField id="password" label="Password" type="password" placeholder="Password"
-            value={form.password} onChange={handleChange} Icon={Lock} />
-          <AuthButton
-            type="submit"
-            label={loading ? "Logging in..." : "Login"}
-            disabled={loading}
-          />
-        </form>
-        <div className="flex justify-between items-center mt-4">
-          <AuthLink to="/forgot-password">Forgot Password?</AuthLink>
-        </div>
-      </AuthCard>
-    </AuthLayout>
-  );
+return (
+  <AuthLayout>
+    <AuthCard>
+      <Logo />
+
+      {/* Mobile-only heading */}
+      <h1 className="md:hidden text-white text-xl font-bold text-center mt-4">
+        Sign in to ABY Diamond Mines
+      </h1>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-10 sm:gap-8 mt-3">
+        <InputField
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="Enter your email"
+          value={form.email}
+          onChange={handleChange}
+          Icon={Mail}
+        />
+
+        <InputField
+          id="password"
+          label="Password"
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={handleChange}
+          Icon={Lock}
+        />
+
+        <AuthButton
+          type="submit"
+          label={loading ? "Logging in..." : "Login"}
+          disabled={loading}
+        />
+      </form>
+
+      <div className="flex justify-between items-center mt-20 sm:mt-4">
+        <AuthLink to="/forgot-password">Forgot Password?</AuthLink>
+      </div>
+    </AuthCard>
+  </AuthLayout>
+);
 };
 
 export default Login;
