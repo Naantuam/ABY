@@ -214,7 +214,6 @@ export default function UserCategories() {
        // Selected Category Table
         <div className="bg-white rounded-xl shadow-md p-4">
           <div className="flex items-center gap-2 mb-4">
-            {/* ... (back button and title) ... */}
             <h2 className="text-base font-semibold ml-4">{selectedCategory.label}</h2>
           </div>
           <div className="overflow-x-auto">
@@ -234,10 +233,8 @@ export default function UserCategories() {
                     onClick={() => setSelectedUser(u)}
                     className="hover:bg-gray-50 cursor-pointer text-xs md:text-sm"
                   >
-                    {/* ✅ FIX: Changed 'u.name' to 'u.username' */}
                     <td className="border px-2 py-2">{u.username}</td>
                     <td className="border px-2 py-2">{u.email}</td>
-                    {/* ✅ FIX: Changed 'u.phone' to 'u.phone_number' */}
                     <td className="border px-2 py-2">{u.phone_number}</td>
                     <td className="border px-2 py-2">{u.department}</td>
                   </tr>
