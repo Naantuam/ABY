@@ -1,5 +1,3 @@
-
-
 const colors = {
   green: 'bg-green-100 text-green-900',
   red: 'bg-red-100 text-red-900',
@@ -7,8 +5,12 @@ const colors = {
   blue: 'bg-blue-100 text-blue-900',
 };
 
-export default function StatCard({ title, count, icon: Icon, badges }) {
+export default function StatCard({ title, count, icon: Icon, badges, href }) {
   return (
+    <a
+      href={href} // <--- The href is added here!
+      className="block w-full h-full hover:shadow-lg transition-shadow duration-150 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" // Add styling for clickability
+    >
     <div className="bg-white p-2 rounded-lg shadow-md w-full flex flex-col justify-between h-full">
       {/* Top section */}
       <div className="flex justify-between items-center">
@@ -41,5 +43,6 @@ export default function StatCard({ title, count, icon: Icon, badges }) {
         ))}
       </div>
     </div>
+    </a>
   );
 }
