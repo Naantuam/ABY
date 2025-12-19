@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import AuthLayout from "./AuthComponents/AuthLayout"
-import AuthCard from "./AuthComponents/AuthCard"
-import AuthLink from "./AuthComponents/AuthLink"
-import AuthButton from "./AuthComponents/AuthButton"
-import Logo from "./AuthComponents/Logo"
+import AuthLayout from "./AuthComponents/AuthLayout";
+import AuthCard from "./AuthComponents/AuthCard";
+import AuthLink from "./AuthComponents/AuthLink";
+import AuthButton from "./AuthComponents/AuthButton";
+import Logo from "./AuthComponents/Logo";
 import InputField from "./AuthComponents/InputField";
-import { Mail, Lock } from "lucide-react"; 
-import api from "../api"
+import { Mail, Lock } from "lucide-react";
+import api from "../api";
 
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -15,86 +15,92 @@ const Login = () => {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.id]: e.target.value });
 
- const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // 🔌 API call to Render backend
       const res = await api.post("/api/users/token/", form);
       const { access, user, refresh } = res.data;
 
-      // 💾 Save token for future protected routes
       localStorage.setItem("access_token", access);
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("refresh_token", refresh);
 
-      // 🚀 Redirect after success
       window.location.href = "/Admin";
     } catch (err) {
-     // ... inside the catch(err) block
-      const errorMessage = err.response?.data?.message // Get specific message from server
-                            || err.message // Fallback to network error message (e.g., "Network Error")
-                            || "Login failed due to an unknown error.";
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Login failed due to an unknown error.";
 
       console.error("Login failed:", errorMessage);
 
-      // Use a more user-friendly message for generic network/CORS issues
       if (!err.response) {
-          alert("Could not connect to the server. Check your internet connection or server status.");
+        alert("Could not connect to the server. Check your internet connection or server status.");
       } else {
-          alert(errorMessage);
+        alert(errorMessage);
       }
     } finally {
       setLoading(false);
     }
   };
 
+  return (
+    <AuthLayout>
+      <AuthCard>
+        
+        {/* Top Section: Logo & Title */}
+        <div className="flex flex-col items-center justify-center mt-4 md:mt-0">
+          <Logo />
+          {/* Mobile-only heading */}
+          <h1 className="md:hidden text-white text-xl font-bold text-center mt-6">
+            Sign in to ABY Diamond Mines
+          </h1>
+        </div>
 
-return (
-  <AuthLayout>
-    <AuthCard>
-      <Logo />
+        {/* Middle Section: Form (Grows to fill space) */}
+        <div className="flex-grow flex flex-col justify-center py-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <InputField
+              id="email"
+              label="Email"
+              type="email"
+              placeholder="Enter your email"
+              value={form.email}
+              onChange={handleChange}
+              Icon={Mail}
+            />
 
-      {/* Mobile-only heading */}
-      <h1 className="md:hidden text-white text-xl font-bold text-center mt-4">
-        Sign in to ABY Diamond Mines
-      </h1>
+            <InputField
+              id="password"
+              label="Password"
+              type="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              Icon={Lock}
+            />
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-10 sm:gap-8 mt-3">
-        <InputField
-          id="email"
-          label="Email"
-          type="email"
-          placeholder="Enter your email"
-          value={form.email}
-          onChange={handleChange}
-          Icon={Mail}
-        />
+            {/* Added margin top to separate button slightly */}
+            <div className="mt-4">
+              <AuthButton
+                type="submit"
+                label={loading ? "Logging in..." : "Login"}
+                disabled={loading}
+              />
+            </div>
+          </form>
+        </div>
 
-        <InputField
-          id="password"
-          label="Password"
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          Icon={Lock}
-        />
+        {/* Bottom Section: Links */}
+        <div className="flex justify-center items-center pb-4 md:pb-0">
+          <AuthLink to="/forgot-password">Forgot Password?</AuthLink>
+        </div>
 
-        <AuthButton
-          type="submit"
-          label={loading ? "Logging in..." : "Login"}
-          disabled={loading}
-        />
-      </form>
-
-      <div className="flex justify-between items-center mt-20 sm:mt-4">
-        <AuthLink to="/forgot-password">Forgot Password?</AuthLink>
-      </div>
-    </AuthCard>
-  </AuthLayout>
-);
+      </AuthCard>
+    </AuthLayout>
+  );
 };
 
 export default Login;

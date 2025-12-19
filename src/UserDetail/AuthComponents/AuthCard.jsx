@@ -3,16 +3,24 @@ import React from "react";
 const AuthCard = ({ children }) => {
   return (
     <div className="
-      /* Mobile Base Styles */
-      bg-black/50 backdrop-blur-xl border border-white/20 shadow-xl 
-      p-5 md:w-full sm:w-[80%] w-full  overflow-y-auto h-full sm:h-[90%] max-h-full
+      /* Mobile: Full Screen Overlay */
+      w-full 
+      h-[100dvh] /* dynamic viewport height for mobile browsers */
+      flex flex-col 
+      bg-black/60 /* Slightly darker on mobile for better text contrast */
+      backdrop-blur-md
+      p-6
       
-      /* Desktop/Medium Adjustments */
-      md:bg-white/10 
-      sm:rounded-2xl 
+      /* Desktop: Centered Card */
+      md:h-auto 
       md:min-h-fit 
-      
-      md:max-w-md
+      md:w-full 
+      md:max-w-md 
+      md:rounded-3xl 
+      md:bg-white/10 
+      md:border md:border-white/20 
+      md:shadow-2xl
+      md:p-8
     ">
       {children}
     </div>
