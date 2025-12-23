@@ -34,7 +34,7 @@ export default function StatInfo() {
   useEffect(() => {
     async function fetchUserStats() {
       try {
-        const response = await api.get("/api/users/stats/"); 
+        const response = await api.get("/users/stats/"); 
         const data = response.data; 
 
         setUserStats({
@@ -56,7 +56,7 @@ export default function StatInfo() {
   useEffect(() => {
     async function fetchEquipmentStats() {
       try {
-        const response = await api.get("/api/equipment/stats/"); 
+        const response = await api.get("/equipment/stats/"); 
         const data = response.data; 
         
         const total = data.total_equipment + data.active_equipment + data.repair_equipment + data.retired_equipment;
@@ -81,7 +81,7 @@ export default function StatInfo() {
   useEffect(() => {
     async function fetchProjectStats() {
       try {
-        const response = await api.get("/api/projects/stats/");
+        const response = await api.get("/projects/stats/");
         const data = response.data; 
         
         setProjectStats({
@@ -105,7 +105,7 @@ export default function StatInfo() {
   useEffect(() => {
     async function fetchSafetyStats() {
       try {
-        const response = await api.get("/api/safety/safety-incidents/stats/"); 
+        const response = await api.get("/safety/safety-incidents/stats/"); 
         const data = response.data; 
         
         setSafetyStats({

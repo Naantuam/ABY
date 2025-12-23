@@ -33,8 +33,8 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => {} }
         setLoading(true);
         // Fetch both user and roles in parallel
         const [userResponse, rolesResponse] = await Promise.all([
-          api.get('/api/users/me/'),
-          api.get('/api/users/roles/') // <-- ADD THIS FETCH
+          api.get('/users/me/'),
+          api.get('/users/roles/') // <-- ADD THIS FETCH
         ]);
 
         // Set user data

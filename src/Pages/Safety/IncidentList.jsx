@@ -14,7 +14,7 @@ export default function IncidentList() {
   const fetchIncidents = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/safety/safety-incidents/");
+      const response = await api.get("/safety/safety-incidents/");
       setIncidents(response.data.results || []);
     } catch (error) {
       console.error("Failed to fetch incidents:", error);
@@ -148,13 +148,13 @@ export default function IncidentList() {
     try {
       if (editing.id) {
         // UPDATE existing
-        const response = await api.put(`/api/safety/safety-incidents/${editing.id}/`, editing);
+        const response = await api.put(`/safety/safety-incidents/${editing.id}/`, editing);
         setIncidents((prev) =>
           prev.map((inc) => (inc.id === editing.id ? response.data : inc))
         );
       } else {
         // CREATE new
-        const response = await api.post("/api/safety/safety-incidents/", editing);
+        const response = await api.post("/safety/safety-incidents/", editing);
         setIncidents((prev) => [response.data, ...prev]);
       }
       setEditing(null);

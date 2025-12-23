@@ -20,7 +20,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const res = await api.post("/api/users/token/", form);
+      // 🔄 FIX: Removed "/api" prefix because api.js handles it now
+      const res = await api.post("/users/token/", form);
       const { access, user, refresh } = res.data;
 
       localStorage.setItem("access_token", access);

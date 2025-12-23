@@ -28,8 +28,8 @@ export default function UserCategories() {
       setLoading(true);
       // FIXED: Changed endpoint from /users/roles/ to /categories/user-categories/
       const [rolesRes, usersRes] = await Promise.all([
-        api.get("/api/users/roles/"),
-        api.get("/api/users/"),
+        api.get("/users/roles/"),
+        api.get("/users/"),
       ]);
 
       const rolesData = rolesRes.data;
@@ -68,7 +68,7 @@ export default function UserCategories() {
     if (newCategory.trim()) {
       try {
         // FIXED: Changed endpoint from /roles/create/ to /categories/user-categories/
-        await api.post("/api/users/roles/", {
+        await api.post("/users/roles/", {
           name: newCategory.trim(),
         });
         setNewCategory("");
@@ -99,7 +99,7 @@ export default function UserCategories() {
     try {
         console.log("Sending User Payload:", newUser); 
         
-        await api.post('/api/users/', newUser); 
+        await api.post('/users/', newUser); 
         
         alert(`User ${newUser.username} created for role ${selectedCategory.label}.`);
         closeAddUserModal();
