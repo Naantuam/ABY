@@ -223,7 +223,7 @@ export default function EquipmentList() {
               placeholder="Search equipment..."
               value={filters.name}
               onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm transition duration-150 ease-in-out"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm"
             />
           </div>
 
@@ -233,11 +233,20 @@ export default function EquipmentList() {
             className={`relative p-2.5 rounded-xl border transition-colors ${hasActiveFilters ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
           >
             <Filter className="w-5 h-5" />
-            {/* Active Indicator Dot */}
             {hasActiveFilters && (
               <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
             )}
           </button>
+
+          {/* Add Trigger (Mobile) */}
+          {canEdit && (
+            <button
+              onClick={handleAdd}
+              className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -280,7 +289,7 @@ export default function EquipmentList() {
                     <td className="px-4 py-3 text-black">{eq.type}</td>
                     <td className="px-4 py-3 text-black">{eq.date}</td>
                     <td className="px-4 py-3 font-mono text-black">{eq.cost}</td>
-                    <td className="px-4 py-3"><span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${getStatusColor(eq.status)}`}>{eq.status}</span></td>
+                    <td className="px-4 py-3"><span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-semibold border ${getStatusColor(eq.status)}`}>{eq.status}</span></td>
                     <td className="px-4 py-3 text-right flex justify-end gap-2">
                       <button onClick={(e) => { e.stopPropagation(); setEditing(eq); }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded"><Edit className="w-4 h-4" /></button>
                       <button onClick={(e) => handleDelete(eq.id, e)} className="text-red-600 hover:bg-red-50 p-1.5 rounded"><Trash2 className="w-4 h-4" /></button>

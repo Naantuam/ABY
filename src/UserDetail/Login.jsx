@@ -28,7 +28,7 @@ const Login = () => {
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("refresh_token", refresh);
 
-      window.location.href = "/Admin";
+      window.location.href = "/dashboard";
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||

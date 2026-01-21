@@ -206,6 +206,7 @@ export default function ProjectList() {
       {/* 📱 MOBILE: Sticky Filter Bar */}
       <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 shadow-sm mb-4">
         <div className="flex gap-3">
+          {/* Search Input */}
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-gray-400" />
@@ -213,20 +214,27 @@ export default function ProjectList() {
             <input
               type="text"
               placeholder="Search projects..."
-              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm transition duration-150 ease-in-out"
               value={mobileSearch}
               onChange={(e) => setMobileSearch(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm transition duration-150 ease-in-out"
             />
           </div>
 
+          {/* Filter Trigger */}
           <button
             onClick={() => setShowMobileFilters(true)}
             className={`relative p-2.5 rounded-xl border transition-colors ${hasActiveFilters ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
           >
             <Filter className="w-5 h-5" />
-            {hasActiveFilters && (
-              <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            )}
+            {hasActiveFilters && <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-blue-600 rounded-full"></span>}
+          </button>
+
+          {/* Add Trigger (Mobile) */}
+          <button
+            onClick={() => openModal(null, 'add')}
+            className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+          >
+            <Plus className="w-5 h-5" />
           </button>
         </div>
       </div>

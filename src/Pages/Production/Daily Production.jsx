@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Download, Trash, Loader2, Search, Filter, X, Edit, Plus, Calendar, DollarSign } from "lucide-react"; // Added Loader2
+import { Download, Trash, Loader2, Search, Filter, X, Edit, Plus, Calendar, DollarSign, Check } from "lucide-react"; // Added Loader2
 import api from "../../api";
 
 export default function DailyProduction() {
@@ -426,13 +426,7 @@ export default function DailyProduction() {
               <Search className="h-4 w-4 text-gray-400" />
             </div>
             <input
-              type="text" // Date search or generic? Using dateMin as proxy or just visual for now? 
-              // Using generic search for ID or specific logic? 
-              // Daily Production filters are numeric/date. Text search might be limited. 
-              // We'll mimic EquipmentList visual but maybe map it to SN or Remarks?
-              // Let's us SN filter for now or disable if not relevant. 
-              // Actually, let's map it to 'sn' or 'remarks'? 
-              // User said "advanced filter logic". I'll bind it to SN for now.
+              type="text"
               placeholder="Search ID..."
               value={filters.sn}
               onChange={(e) => setFilters({ ...filters, sn: e.target.value })}
@@ -447,6 +441,14 @@ export default function DailyProduction() {
           >
             <Filter className="w-5 h-5" />
             {hasActiveFilters && <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-blue-600 rounded-full"></span>}
+          </button>
+
+          {/* Add Trigger (Mobile) */}
+          <button
+            onClick={handleAddRow}
+            className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+          >
+            <Plus className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -528,13 +530,14 @@ export default function DailyProduction() {
 
         {/* 📱 MOBILE CARD VIEW */}
         <div className="block lg:hidden bg-gray-50/50 p-4 space-y-4">
-          {/* Add Button Mobile */}
-          <div className="flex justify-end mb-2">
-            <button onClick={handleAddRow} className="bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm">+ Add Record</button>
-          </div>
+
 
           {visibleItems.map((item) => (
-            <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform">
+            <div
+              key={item.id}
+              onClick={() => { setEditingRowId(item.id); setOriginalItem(item); }}
+              className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform cursor-pointer"
+            >
 
               {/* Header: Date & Total */}
               <div className="flex justify-between items-start mb-3 border-b border-gray-50 pb-2">
@@ -558,25 +561,108 @@ export default function DailyProduction() {
 
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                <button onClick={() => { setEditingRowId(item.id); setOriginalItem(item); }} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg"><Edit className="w-3 h-3" /> Edit</button>
-                <button onClick={() => handleDelete(item.id)} className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg"><Trash className="w-3 h-3" /> Delete</button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                  className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg"
+                >
+                  <Trash className="w-3 h-3" /> Delete
+                </button>
               </div>
-
-              {/* Mobile Inline Edit (Simplified) - Just showing notice if trying to edit on mobile for now, or we could render inputs. 
-                   For now, the 'Edit' button triggers the same logic, which might look weird on mobile card if we don't handle it. 
-                   Implementation choice: Force users to desktop for complex table editing or assume inline replacement works. 
-                   The inline logic 'editingRowId === item.id' works for the table. For card, we haven't implemented inputs.
-               */}
-              {editingRowId === item.id && (
-                <div className="mt-2 text-center text-xs text-orange-600 bg-orange-50 p-2 rounded">
-                  ⚠️ Editing is best done on Desktop due to many columns.
-                  <button onClick={() => setEditingRowId(null)} className="ml-2 underline">Cancel</button>
-                </div>
-              )}
             </div>
           ))}
           {visibleItems.length === 0 && <div className="text-center text-gray-400 text-sm py-8">No records found.</div>}
         </div>
+
+        {/* 📱 MOBILE EDIT MODAL */}
+        {editingRowId && originalItem && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center lg:hidden">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setEditingRowId(null); setOriginalItem(null); loadData(); }} />
+            <div className="bg-white w-full rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto relative z-10 animate-in slide-in-from-bottom duration-300">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Edit Record</h3>
+                <button onClick={() => { setEditingRowId(null); setOriginalItem(null); loadData(); }} className="p-2 bg-gray-100 rounded-full text-gray-500">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Date */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Date</label>
+                  <input
+                    type="date"
+                    value={items.find(it => it.id === editingRowId)?.Date || ""}
+                    onChange={(e) => handleFieldChange(editingRowId, "Date", e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Trucks */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Trucks</label>
+                  <input
+                    type="number"
+                    value={items.find(it => it.id === editingRowId)?.Trucks || 0}
+                    onChange={(e) => handleFieldChange(editingRowId, "Trucks", e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Quantity (Read-onlyish since derived) */}
+                  <div className="opacity-70">
+                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Quantity (Tonnes)</label>
+                    <div className="p-3 bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700">
+                      {items.find(it => it.id === editingRowId)?.Quantity?.toLocaleString()}
+                    </div>
+                  </div>
+                  {/* Total (Read-onlyish since derived) */}
+                  <div className="opacity-70">
+                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Total (₦)</label>
+                    <div className="p-3 bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700">
+                      {fmt(items.find(it => it.id === editingRowId)?.Total)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Derived Fields Details */}
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Federal Royalty</span>
+                    <span className="font-mono font-medium">{fmt(items.find(it => it.id === editingRowId)?.FederalRoyalty)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">State Haulage</span>
+                    <span className="font-mono font-medium">{fmt(items.find(it => it.id === editingRowId)?.StateHaulage)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">MoU (5%)</span>
+                    <span className="font-mono font-medium">{items.find(it => it.id === editingRowId)?.MoU?.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Remarks */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Remarks</label>
+                  <select
+                    value={items.find(it => it.id === editingRowId)?.Remarks || ""}
+                    onChange={(e) => handleFieldChange(editingRowId, "Remarks", e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  >
+                    <option value="">Select Status</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Nill">Nill</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8 pt-4 border-t border-gray-100">
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(editingRowId); }} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"><Trash className="w-4 h-4" /> Delete</button>
+                <button onClick={() => handleSaveRow(editingRowId)} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Save Changes</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 📱 MOBILE FILTER DRAWER */}

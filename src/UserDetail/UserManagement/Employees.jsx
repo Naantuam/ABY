@@ -225,27 +225,29 @@ export default function Employees() {
             <input
               type="text"
               placeholder="Search all fields..."
-              className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm transition duration-150"
               value={mobileSearch}
               onChange={(e) => setMobileSearch(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm transition duration-150 ease-in-out"
             />
           </div>
 
           {/* Filter Toggle Button */}
           <button
             onClick={() => setShowMobileFilters(true)}
-            className={`relative p-2.5 rounded-xl border transition-all active:scale-95 ${hasActiveFilters
-              ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200"
-              : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
-              }`}
+            className={`relative p-2.5 rounded-xl border transition-colors ${hasActiveFilters ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
           >
             <Filter className="w-5 h-5" />
             {hasActiveFilters && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
+              <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-400 rounded-full border border-white"></span>
             )}
+          </button>
+
+          {/* Add Trigger (Mobile) */}
+          <button
+            onClick={handleAddEmployee}
+            className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+          >
+            <Plus className="w-5 h-5" />
           </button>
         </div>
       </div>

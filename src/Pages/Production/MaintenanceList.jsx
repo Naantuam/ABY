@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Download, Trash, Loader2, Search, Filter, X, Edit } from "lucide-react";
+import { Download, Trash, Loader2, Search, Filter, X, Edit, Check, Plus } from "lucide-react";
 import api from "../../api";
 
 export default function MaintenanceList() {
@@ -322,6 +322,14 @@ export default function MaintenanceList() {
             <Filter className="w-5 h-5" />
             {hasActiveFilters && <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-blue-600 rounded-full"></span>}
           </button>
+
+          {/* Add Trigger (Mobile) */}
+          <button
+            onClick={handleAdd}
+            className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
@@ -577,13 +585,14 @@ export default function MaintenanceList() {
 
       {/* 📱 MOBILE CARD VIEW */}
       <div className="block lg:hidden bg-gray-50/50 space-y-4">
-        {/* Add Button Mobile */}
-        <div className="flex justify-end mb-2">
-          <button onClick={handleAdd} className="bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm">+ Add Record</button>
-        </div>
+
 
         {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((item) => (
-          <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform">
+          <div
+            key={item.id}
+            onClick={() => { setEditingRowId(item.id); setOriginalItem(item); }}
+            className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform cursor-pointer"
+          >
 
             {/* Header */}
             <div className="flex justify-between items-start mb-3 border-b border-gray-50 pb-2">
@@ -611,16 +620,13 @@ export default function MaintenanceList() {
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-              <button onClick={() => { setEditingRowId(item.id); setOriginalItem(item); }} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg"><Edit className="w-3 h-3" /> Edit</button>
-              <button onClick={() => handleDelete(item.id)} className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg"><Trash className="w-3 h-3" /> Delete</button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg"
+              >
+                <Trash className="w-3 h-3" /> Delete
+              </button>
             </div>
-
-            {editingRowId === item.id && (
-              <div className="mt-2 text-center text-xs text-orange-600 bg-orange-50 p-2 rounded">
-                ⚠️ Editing is best done on Desktop.
-                <button onClick={() => setEditingRowId(null)} className="ml-2 underline">Cancel</button>
-              </div>
-            )}
           </div>
         ))}
         {[...filteredItems].length === 0 && <div className="text-center text-gray-400 text-sm py-8">No records found.</div>}
@@ -632,6 +638,105 @@ export default function MaintenanceList() {
           </div>
         )}
       </div>
+
+      {/* 📱 MOBILE EDIT MODAL */}
+      {editingRowId && originalItem && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center lg:hidden">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setEditingRowId(null); setOriginalItem(null); fetchMaintenance(); }} />
+          <div className="bg-white w-full rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto relative z-10 animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Edit Maintenance</h3>
+              <button onClick={() => { setEditingRowId(null); setOriginalItem(null); fetchMaintenance(); }} className="p-2 bg-gray-100 rounded-full text-gray-500">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Date */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Date</label>
+                <input
+                  type="date"
+                  value={items.find(it => it.id === editingRowId)?.Date || ""}
+                  onChange={(e) => handleFieldChange(editingRowId, "Date", e.target.value)}
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Description</label>
+                <input
+                  type="text"
+                  value={items.find(it => it.id === editingRowId)?.Description || ""}
+                  onChange={(e) => handleFieldChange(editingRowId, "Description", e.target.value)}
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Quantity */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Quantity</label>
+                  <input
+                    type="number"
+                    value={items.find(it => it.id === editingRowId)?.Quantity || ""}
+                    onChange={(e) => handleFieldChange(editingRowId, "Quantity", e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+                {/* Rate */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Rate</label>
+                  <input
+                    type="text"
+                    value={items.find(it => it.id === editingRowId)?.Rate || ""}
+                    onChange={(e) => handleFieldChange(editingRowId, "Rate", e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Income */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Income (₦)</label>
+                  <input
+                    type="number"
+                    value={items.find(it => it.id === editingRowId)?.Income || 0}
+                    onChange={(e) => handleFieldChange(editingRowId, "Income", e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+                {/* Expenditure */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Expenditure (₦)</label>
+                  <input
+                    type="number"
+                    value={items.find(it => it.id === editingRowId)?.Expenditure || 0}
+                    onChange={(e) => handleFieldChange(editingRowId, "Expenditure", e.target.value)}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Balance (Derived/Read-only usually, but here handled by auto-calc in handleFieldChange) */}
+              <div className="opacity-70">
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Balance (₦)</label>
+                <div className={`p-3 bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold ${items.find(it => it.id === editingRowId)?.Bal >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {fmt(items.find(it => it.id === editingRowId)?.Bal)}
+                </div>
+              </div>
+
+            </div>
+
+            <div className="flex gap-3 mt-8 pt-4 border-t border-gray-100">
+              <button onClick={(e) => { e.stopPropagation(); handleDelete(editingRowId); }} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"><Trash className="w-4 h-4" /> Delete</button>
+              <button onClick={() => handleSaveRow(editingRowId)} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 📱 MOBILE FILTER DRAWER */}
       {showMobileFilters && (
