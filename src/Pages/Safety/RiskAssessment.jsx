@@ -1,543 +1,488 @@
 import { useState, useEffect } from "react";
-import { Download } from "lucide-react";
-import api from "../../api"; // Ensure this path is correct
+import {
+   Download, Trash2, Plus, Edit, X, Calendar,
+   AlertTriangle, Search, Filter
+} from "lucide-react";
+import api from "../../api";
 
 export default function RiskList() {
-  const [risks, setRisks] = useState([]);
-  const [loading, setLoading] = useState(true);
+   const [risks, setRisks] = useState([]);
+   const [loading, setLoading] = useState(true);
 
-  // Permission Logic (Placeholder)
-  const canEdit = true; 
+   // ────────────────────────────────
+   // 1️⃣ Constants (Backend Values)
+   // ────────────────────────────────
+   const LIKELIHOOD_OPTIONS = ["low", "medium", "high"];
+   const IMPACT_OPTIONS = ["minor", "moderate", "severe"];
+   const STATUS_OPTIONS = ["reported", "resolving", "mitigated", "pending"];
 
-  // ────────────────────────────────
-  // 1️⃣ Fetch Data from API
-  // ────────────────────────────────
-  const fetchRisks = async () => {
-    try {
-      console.log("📡 Fetching Risk Assessments...");
-      setLoading(true);
-      
-      const response = await api.get("/safety/risk-assessments/");
-      
-      console.log("✅ API Response:", response);
-      console.log("📦 Data received:", response.data);
-
-      // Handle Django DRF pagination structure { results: [...] }
-      const fetchedData = response.data.results || response.data || [];
-      
-      console.log("🔄 Setting state 'risks' to:", fetchedData);
-      setRisks(fetchedData);
-
-    } catch (error) {
-      console.error("❌ Failed to fetch risk assessments:", error);
-      if (error.response) {
-        console.error("⚠️ Error Response Data:", error.response.data);
-        console.error("⚠️ Error Status:", error.response.status);
+   // ────────────────────────────────
+   // 2️⃣ Fetch Data
+   // ────────────────────────────────
+   const fetchRisks = async () => {
+      try {
+         setLoading(true);
+         const response = await api.get("/safety/risk-assessments/");
+         setRisks(response.data.results || response.data || []);
+      } catch (error) {
+         console.error("❌ Failed to fetch risks:", error);
+      } finally {
+         setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+   };
 
-  useEffect(() => {
-    fetchRisks();
-  }, []);
+   useEffect(() => {
+      fetchRisks();
+   }, []);
 
-  // ────────────────────────────────
-  // 2️⃣ Filters & Modal State
-  // ────────────────────────────────
-  const [filters, setFilters] = useState({
-    idMin: "", idMax: "",
-    dateMin: "", dateMax: "",
-    project: "",
-    status: "",
-  });
+   // ────────────────────────────────
+   // 3️⃣ State & Filters
+   // ────────────────────────────────
+   const [filters, setFilters] = useState({
+      project: "", status: "", likelihood: "",
+      date: "", dateMin: "", dateMax: "" // Added 'date' for exact match
+   });
 
-  const [editing, setEditing] = useState(null);
-  
-  // Local state for calculations inside modal
-  const [initialLikelihood, setInitialLikelihood] = useState(0);
-  const [initialSeverity, setInitialSeverity] = useState(0);
-  const [residualLikelihood, setResidualLikelihood] = useState(0);
-  const [residualSeverity, setResidualSeverity] = useState(0);
+   const [mobileSearch, setMobileSearch] = useState("");
+   const [showMobileFilters, setShowMobileFilters] = useState(false);
+   const [editing, setEditing] = useState(null);
 
-  const [idModalOpen, setIdModalOpen] = useState(false);
-  const [dateModalOpen, setDateModalOpen] = useState(false);
-  const [idRange, setIdRange] = useState({ min: "", max: "" });
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+   // Local state for modal dropdowns
+   const [likelihood, setLikelihood] = useState("low");
+   const [impact, setImpact] = useState("minor");
 
-  const [visibleCount, setVisibleCount] = useState(10);
+   const [visibleCount, setVisibleCount] = useState(10);
 
-  // ────────────────────────────────
-  // 3️⃣ Helpers & Calculations
-  // ────────────────────────────────
-  const computedInitialRiskScore = (initialLikelihood || 0) * (initialSeverity || 0);
-  const computedResidualRiskScore = (residualLikelihood || 0) * (residualSeverity || 0);
+   // Date Modal States (Desktop)
+   const [dateModalOpen, setDateModalOpen] = useState(false);
+   const [tempDate, setTempDate] = useState(""); // Local state for single date
+   const [tempRange, setTempRange] = useState({ start: "", end: "" }); // Local state for range
 
-  // Auto-calculate status based on scores
-  const getAutoStatus = () => {
-    if (
-      computedInitialRiskScore > 0 &&
-      computedResidualRiskScore > 0 &&
-      computedResidualRiskScore < computedInitialRiskScore
-    ) {
-      return "Mitigated";
-    }
-    return "Pending";
-  };
+   // Helper for mobile badge
+   const hasActiveFilters = filters.status || filters.likelihood || filters.date || filters.dateMin;
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Mitigated": return "bg-green-500 text-white";
-      case "Pending": return "bg-yellow-400 text-black";
-      default: return "bg-gray-400 text-white";
-    }
-  };
+   // ────────────────────────────────
+   // 4️⃣ Handlers
+   // ────────────────────────────────
+   const handleAdd = () => {
+      setLikelihood("low");
+      setImpact("minor");
+      setEditing({
+         assessment_date: new Date().toISOString().slice(0, 10),
+         project: "",
+         hazard_type: "",
+         status: "reported",
+         mitigation_plan: "",
+         related_incident: "",
+         assessed_by: ""
+      });
+   };
 
-  // ────────────────────────────────
-  // 4️⃣ Filter Logic
-  // ────────────────────────────────
-  const filteredRisks = risks.filter((risk) => {
-    const matchID =
-      filters.idMin && filters.idMax
-        ? Number(risk.id) >= Number(filters.idMin) && Number(risk.id) <= Number(filters.idMax)
-        : filters.idMin
-        ? Number(risk.id) === Number(filters.idMin)
-        : true;
+   const handleRowClick = (risk) => {
+      setLikelihood(risk.likelihood || "low");
+      setImpact(risk.impact || "minor");
+      setEditing({ ...risk });
+   };
 
-    const matchDate =
-      filters.dateMin && filters.dateMax
-        ? risk.date >= filters.dateMin && risk.date <= filters.dateMax
-        : filters.dateMin
-        ? risk.date === filters.dateMin
-        : true;
+   const handleSave = async () => {
+      if (!editing) return;
 
-    const matchProject = filters.project
-      ? risk.project?.toLowerCase().includes(filters.project.toLowerCase())
-      : true;
+      const toIntOrNull = (val) => (val && val !== "" ? parseInt(val, 10) : null);
 
-    const matchStatus = filters.status ? risk.status === filters.status : true;
+      const payload = {
+         assessment_date: editing.assessment_date,
+         project: editing.project,
+         hazard_type: editing.hazard_type,
+         mitigation_plan: editing.mitigation_plan,
+         status: editing.status,
+         likelihood: likelihood,
+         impact: impact,
+         assessed_by: toIntOrNull(editing.assessed_by),
+         related_incident: toIntOrNull(editing.related_incident)
+      };
 
-    return matchID && matchDate && matchProject && matchStatus;
-  });
-
-  // ────────────────────────────────
-  // 5️⃣ Handlers (Add, Save, Export)
-  // ────────────────────────────────
-  
-  const handleAdd = () => {
-    const newRisk = {
-      date: new Date().toISOString().slice(0, 10),
-      project: "",
-      hazard_type: "", 
-      initial_likelihood: 1,
-      initial_severity: 1,
-      residual_likelihood: 1,
-      residual_severity: 1,
-      control_measures: "",
-      status: "pending"
-    };
-    
-    setEditing(newRisk);
-    // Reset Calculation State
-    setInitialLikelihood(1);
-    setInitialSeverity(1);
-    setResidualLikelihood(1);
-    setResidualSeverity(1);
-  };
-
-  const handleRowClick = (risk) => {
-    setEditing({
-      ...risk,
-      // Map API 'assessment_date' back to React 'date' for the date picker
-      date: risk.assessment_date || risk.date 
-    });
-    
-    setInitialLikelihood(risk.initial_likelihood || 0);
-    setInitialSeverity(risk.initial_severity || 0);
-    setResidualLikelihood(risk.residual_likelihood || 0);
-    setResidualSeverity(risk.residual_severity || 0);
-  };
-
-  const handleSave = async () => {
-    if (!editing) return;
-
-    // 1️⃣ Calculate status and convert to lowercase for API (pending / mitigated)
-    const currentStatus = getAutoStatus().toLowerCase(); 
-
-    // 2️⃣ Prepare payload matching Django's exact field names
-    const payload = {
-      // Map 'date' (React) to 'assessment_date' (Django)
-      assessment_date: editing.date, 
-      
-      project: editing.project,
-      hazard_type: editing.hazard_type || editing.hazardType,
-      control_measures: editing.control_measures || editing.controlMeasures,
-
-      // Scores
-      initial_likelihood: initialLikelihood,
-      initial_severity: initialSeverity,
-      initial_risk_score: computedInitialRiskScore,
-
-      residual_likelihood: residualLikelihood,
-      residual_severity: residualSeverity,
-      residual_risk_score: computedResidualRiskScore,
-
-      // Send lowercase status
-      status: currentStatus, 
-    };
-
-    console.log("📤 Sending Payload:", payload);
-
-    try {
-      if (editing.id) {
-        // UPDATE
-        const response = await api.put(`/safety/risk-assessments/${editing.id}/`, payload);
-        console.log("✅ Update Success:", response.data);
-        setRisks((prev) => prev.map((r) => (r.id === editing.id ? response.data : r)));
-      } else {
-        // CREATE
-        const response = await api.post("/safety/risk-assessments/", payload);
-        console.log("✅ Create Success:", response.data);
-        setRisks((prev) => [response.data, ...prev]);
+      try {
+         if (editing.id) {
+            const response = await api.put(`/safety/risk-assessments/${editing.id}/`, payload);
+            setRisks((prev) => prev.map((r) => (r.id === editing.id ? response.data : r)));
+            alert("Risk Assessment Updated!");
+         } else {
+            const response = await api.post("/safety/risk-assessments/", payload);
+            setRisks((prev) => [response.data, ...prev]);
+            alert("Risk Assessment Created!");
+         }
+         setEditing(null);
+      } catch (error) {
+         console.error("❌ Save Failed:", error.response?.data);
+         alert("Failed to save. Check inputs.");
       }
-      setEditing(null);
-    } catch (error) {
-      console.error("❌ Error saving risk assessment:", error);
-      if (error.response) {
-        // Log the specific validation errors from Django
-        console.error("⚠️ Backend Validation Errors:", error.response.data);
-        alert(`Save failed: ${JSON.stringify(error.response.data)}`);
-      } else {
-        alert("Failed to save. Check console for details.");
+   };
+
+   const handleDelete = async (id, e) => {
+      e.stopPropagation();
+      if (!window.confirm("Delete this assessment?")) return;
+      try {
+         await api.delete(`/safety/risk-assessments/${id}/`);
+         setRisks((prev) => prev.filter((r) => r.id !== id));
+      } catch (error) { alert("Could not delete."); }
+   };
+
+   // ────────────────────────────────
+   // 5️⃣ Filter Logic & Styles
+   // ────────────────────────────────
+   const filteredRisks = risks.filter(risk => {
+      const search = mobileSearch || filters.project;
+
+      const matchProject = search ? risk.project?.toLowerCase().includes(search.toLowerCase()) : true;
+      const matchStatus = filters.status ? risk.status === filters.status : true;
+      const matchLikelihood = filters.likelihood ? risk.likelihood === filters.likelihood : true;
+
+      // Date Logic: Specific Date overrides Range
+      const riskDate = risk.assessment_date;
+      let matchDate = true;
+
+      if (filters.date) {
+         // Exact Match
+         matchDate = riskDate === filters.date;
+      } else if (filters.dateMin || filters.dateMax) {
+         // Range Match
+         const min = filters.dateMin || "0000-00-00";
+         const max = filters.dateMax || "9999-12-31";
+         matchDate = riskDate >= min && riskDate <= max;
       }
-    }
-  };
 
-  const handleExport = () => {
-    if (filteredRisks.length === 0) return alert("No Risks to export!");
-    
-    // Simple flatten for CSV if object structure is complex
-    const headers = Object.keys(filteredRisks[0]).join(",");
-    const rows = filteredRisks.map(row => Object.values(row).map(val => `"${val}"`).join(",")).join("\n");
-    const csv = `${headers}\n${rows}`;
-    
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Risk_list.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
+      return matchProject && matchStatus && matchLikelihood && matchDate;
+   });
 
-  return (
-    <div className="p-6 bg-white rounded-xl shadow-sm">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        {canEdit ? (
-          <button
-            onClick={handleAdd}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            + Add Risk Assessment
-          </button>
-        ) : (
-          <h2 className="text-lg font-semibold text-gray-800">Risk Assessments</h2>
-        )}
+   const getRiskColor = (val) => {
+      switch (val?.toLowerCase()) {
+         case "high": case "severe": return "text-red-700 bg-red-50 border-red-200";
+         case "medium": case "moderate": return "text-orange-700 bg-orange-50 border-orange-200";
+         case "low": case "minor": return "text-green-700 bg-green-50 border-green-200";
+         default: return "text-gray-700 bg-gray-50 border-gray-200";
+      }
+   };
 
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-1 border px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
-        >
-          <Download className="w-4 h-4" />
-          <span className="hidden sm:inline text-sm">Export</span>
-        </button>
-      </div>
+   const getStatusColor = (status) => {
+      switch (status?.toLowerCase()) {
+         case "reported": return "bg-red-100 text-red-700 border-red-200";
+         case "resolving": return "bg-blue-100 text-blue-700 border-blue-200";
+         case "mitigated": return "bg-green-100 text-green-700 border-green-200";
+         case "pending": return "bg-gray-100 text-gray-700 border-gray-200";
+         default: return "bg-gray-50 text-gray-500 border-gray-200";
+      }
+   };
 
-      {/* Table */}
-      <div className="overflow-x-auto max-h-[400px] overflow-y-auto relative">
-        {loading && <div className="p-4 text-center text-gray-500">Loading risks...</div>}
-        
-        {!loading && (
-          <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 z-10">
-              <tr className="bg-gray-100 text-left text-gray-600 font-medium">
-                <th className="px-2 py-2 w-16">
-                  <button
-                    onClick={() => setIdModalOpen(true)}
-                    className={`hover:bg-gray-300 w-full rounded px-1 py-1 text-left flex justify-between ${idModalOpen ? "ring-2 ring-blue-500" : ""}`}
-                  >
-                    ID
-                  </button>
-                </th>
-                <th className="px-2 py-2 w-28">
-                  <button
-                    onClick={() => setDateModalOpen(true)}
-                    className={`hover:bg-gray-300 w-full rounded px-1 py-1 text-left ${dateModalOpen ? "ring-2 ring-blue-500" : ""}`}
-                  >
-                    Date
-                  </button>
-                </th>
-                <th className="px-2 py-2">
+   return (
+      <div className="p-0 sm:p-6 bg-white sm:bg-transparent min-h-screen font-sans">
+
+         {/* 📱 MOBILE: Sticky Header */}
+         <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 shadow-sm mb-2">
+            <div className="flex gap-3">
+               <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                   <input
-                    type="text"
-                    placeholder="Project"
-                    value={filters.project}
-                    onChange={(e) => setFilters({ ...filters, project: e.target.value })}
-                    className="px-2 py-1 w-full rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                     type="text"
+                     placeholder="Search projects..."
+                     className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
+                     value={mobileSearch}
+                     onChange={(e) => setMobileSearch(e.target.value)}
                   />
-                </th>
-                <th className="px-2 py-2">Hazard Type</th>
-                <th className="px-2 py-2 w-32">
-                  <select
-                    value={filters.status}
-                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                    className="w-full border border-gray-300 rounded px-1 py-1 text-xs focus:outline-none"
-                  >
-                    <option value="">Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Mitigated">Mitigated</option>
-                  </select>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...filteredRisks].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((risk) => (
-                <tr
-                  key={risk.id}
-                  onClick={() => handleRowClick(risk)}
-                  className="border-b hover:bg-blue-50 cursor-pointer transition-colors text-xs sm:text-sm group"
-                >
-                  <td className="px-2 py-3 font-medium text-gray-700">#{risk.id}</td>
-                  <td className="px-2 py-3">{risk.date}</td>
-                  <td className="px-2 py-3">{risk.project}</td>
-                  <td className="px-2 py-3">
-                    {/* Handle both casing possibilities for robustness */}
-                    {risk.hazard_type || risk.hazardType}
-                  </td>
-                  <td className="px-2 py-3">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                        risk.status
-                      )}`}
-                    >
-                      {risk.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              
-              {filteredRisks.length === 0 && (
-                <tr><td colSpan={5} className="p-4 text-center text-gray-500">No risks found</td></tr>
-              )}
-            </tbody>
-            <tfoot>
-              <tr className="bg-gray-50 font-semibold text-xs sm:text-sm">
-                {visibleCount < filteredRisks.length && (
-                  <td colSpan={5} className="px-2 py-4 text-center">
-                    <button
-                      onClick={() => setVisibleCount((prev) => prev + 10)}
-                      className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-xs hover:bg-gray-50 transition shadow-sm"
-                    >
-                      View More
-                    </button>
-                  </td>
-                )}
-              </tr>
-            </tfoot>
-          </table>
-        )}
+               </div>
+               <button
+                  onClick={() => setShowMobileFilters(true)}
+                  className={`relative p-2 rounded-xl border transition-all active:scale-95 ${hasActiveFilters ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-gray-200 text-gray-500"}`}
+               >
+                  <Filter className="w-5 h-5" />
+                  {hasActiveFilters && <span className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full border border-white"></span>}
+               </button>
+            </div>
+         </div>
+
+         {/* 🖥️ DESKTOP: Header */}
+         <div className="hidden lg:flex justify-between items-center mb-6">
+            <div>
+               <h2 className="text-xl font-bold text-gray-800">Risk Assessments</h2>
+               <p className="text-xs text-gray-500">Track and mitigate safety hazards</p>
+            </div>
+            <div className="flex gap-2">
+               <button className="flex items-center gap-2 border px-3 py-2 rounded-lg bg-white text-gray-600 text-xs font-bold hover:bg-gray-50 shadow-sm transition"><Download className="w-4 h-4" /> Export</button>
+               <button onClick={handleAdd} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-xs font-bold shadow-sm transition active:scale-95"><Plus className="w-4 h-4" /> Add Risk</button>
+            </div>
+         </div>
+
+         <div className="bg-white lg:rounded-xl shadow-sm border-t lg:border border-gray-200 overflow-hidden">
+
+            {/* 🖥️ DESKTOP TABLE */}
+            <div className="hidden lg:block overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold tracking-wider border-b border-gray-200">
+                     <tr>
+                        {/* Date Filter Button */}
+                        <th className="px-4 py-3 w-32">
+                           <button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-100 px-2 py-1 rounded w-full text-left ${dateModalOpen || filters.date || filters.dateMin ? "text-blue-600 bg-blue-50" : ""}`}>
+                              {filters.date ? "Specific Date" : filters.dateMin ? "Date Range" : "Date"}
+                           </button>
+                        </th>
+
+                        <th className="px-4 py-3 w-40">
+                           <input placeholder="Project Name" className="bg-transparent w-full outline-none placeholder-gray-400"
+                              value={filters.project} onChange={e => setFilters({ ...filters, project: e.target.value })}
+                           />
+                        </th>
+
+                        <th className="px-4 py-3 w-40">Hazard</th>
+                        <th className="px-4 py-3 w-32">
+                           <select className="bg-transparent w-full outline-none cursor-pointer"
+                              value={filters.likelihood} onChange={e => setFilters({ ...filters, likelihood: e.target.value })}
+                           >
+                              <option value="">Likelihood</option>
+                              {LIKELIHOOD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
+                           </select>
+                        </th>
+                        <th className="px-4 py-3 w-32">Impact</th>
+                        <th className="px-4 py-3 w-32">
+                           <select className="bg-transparent w-full outline-none cursor-pointer"
+                              value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}
+                           >
+                              <option value="">Status</option>
+                              {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
+                           </select>
+                        </th>
+                        <th className="px-4 py-3 w-20 text-right">Actions</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-sm">
+                     {filteredRisks.slice(0, visibleCount).map(r => (
+                        <tr key={r.id} onClick={() => handleRowClick(r)} className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
+                           <td className="px-4 py-3 text-black font-mono">{r.assessment_date}</td>
+                           <td className="px-4 py-3 font-medium text-black">{r.project}</td>
+                           <td className="px-4 py-3 text-black">{r.hazard_type}</td>
+                           <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded border capitalize ${getRiskColor(r.likelihood)}`}>{r.likelihood}</span></td>
+                           <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded border capitalize ${getRiskColor(r.impact)}`}>{r.impact}</span></td>
+                           <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded border capitalize ${getStatusColor(r.status)}`}>{r.status}</span></td>
+                           <td className="px-4 py-3 text-right">
+                              <button onClick={(e) => handleDelete(r.id, e)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>
+                           </td>
+                        </tr>
+                     ))}
+                     {filteredRisks.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-gray-400 italic">No risks found.</td></tr>}
+                  </tbody>
+               </table>
+            </div>
+
+            {/* 📱 MOBILE CARD LIST */}
+            <div className="block lg:hidden bg-gray-50/50 p-4 space-y-3">
+               {filteredRisks.slice(0, visibleCount).map(r => (
+                  <div key={r.id} onClick={() => handleRowClick(r)} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform">
+                     <div className="flex justify-between items-start mb-2">
+                        <div>
+                           <h3 className="text-sm font-bold text-gray-900 truncate pr-2">{r.project}</h3>
+                           <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><AlertTriangle className="w-3 h-3" /> {r.hazard_type}</p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase ${getStatusColor(r.status)}`}>{r.status}</span>
+                     </div>
+                     <div className="flex gap-2 mt-3 mb-3">
+                        <span className={`flex-1 text-center py-1 rounded border text-[10px] font-bold capitalize ${getRiskColor(r.likelihood)}`}>{r.likelihood}</span>
+                        <span className={`flex-1 text-center py-1 rounded border text-[10px] font-bold capitalize ${getRiskColor(r.impact)}`}>{r.impact}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-xs text-gray-400 border-t border-gray-100 pt-2">
+                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {r.assessment_date}</span>
+                        <button onClick={(e) => handleDelete(r.id, e)} className="text-red-500 font-medium flex items-center gap-1"><Trash2 className="w-3 h-3" /> Delete</button>
+                     </div>
+                  </div>
+               ))}
+               {filteredRisks.length === 0 && <div className="p-8 text-center text-gray-400 text-sm italic">No risks found.</div>}
+               {visibleCount < filteredRisks.length && <button onClick={() => setVisibleCount(prev => prev + 10)} className="w-full py-3 text-xs font-bold text-gray-500 bg-white border border-gray-200 rounded-xl hover:bg-gray-50">Load More</button>}
+            </div>
+         </div>
+
+         {/* 📱 MOBILE FILTER DRAWER */}
+         {showMobileFilters && (
+            <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50 backdrop-blur-sm lg:hidden animate-in fade-in">
+               <div className="bg-white w-full rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+                  <div className="flex justify-between items-center mb-6">
+                     <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+                     <button onClick={() => setShowMobileFilters(false)} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"><X className="w-5 h-5" /></button>
+                  </div>
+
+                  <div className="space-y-6">
+
+                     {/* 1. Date Section (Specific OR Range) */}
+                     <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Date Filter</label>
+                        <div className="space-y-3">
+                           <div>
+                              <span className="text-[10px] text-gray-400 mb-1 block">Specific Date</span>
+                              <input type="date" className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs"
+                                 value={filters.date}
+                                 onChange={e => setFilters({ ...filters, date: e.target.value, dateMin: "", dateMax: "" })}
+                              />
+                           </div>
+                           <div className="text-center text-[10px] text-gray-400 font-bold">— OR —</div>
+                           <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                 <span className="text-[10px] text-gray-400 mb-1 block">Start</span>
+                                 <input type="date" className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs"
+                                    value={filters.dateMin}
+                                    onChange={e => setFilters({ ...filters, date: "", dateMin: e.target.value })}
+                                 />
+                              </div>
+                              <div>
+                                 <span className="text-[10px] text-gray-400 mb-1 block">End</span>
+                                 <input type="date" className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs"
+                                    value={filters.dateMax}
+                                    onChange={e => setFilters({ ...filters, date: "", dateMax: e.target.value })}
+                                 />
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+
+                     {/* Likelihood Chips */}
+                     <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Likelihood</label>
+                        <div className="flex gap-2">
+                           {["", ...LIKELIHOOD_OPTIONS].map(opt => (
+                              <button key={opt} onClick={() => setFilters({ ...filters, likelihood: opt })} className={`flex-1 py-2 rounded-lg text-xs font-bold capitalize border ${filters.likelihood === opt ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}>{opt || "All"}</button>
+                           ))}
+                        </div>
+                     </div>
+
+                     {/* Status Chips */}
+                     <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Status</label>
+                        <div className="flex flex-wrap gap-2">
+                           {["", ...STATUS_OPTIONS].map(opt => (
+                              <button key={opt} onClick={() => setFilters({ ...filters, status: opt })} className={`px-3 py-2 rounded-full text-xs font-bold capitalize border ${filters.status === opt ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}>{opt || "All"}</button>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-8 pt-4 border-t border-gray-100">
+                     <button onClick={() => setFilters({ project: "", status: "", date: "", dateMin: "", dateMax: "", likelihood: "" })} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl text-xs">Reset</button>
+                     <button onClick={() => setShowMobileFilters(false)} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 text-xs">Show Results</button>
+                  </div>
+               </div>
+            </div>
+         )}
+
+         {/* 🖥️ DESKTOP DATE MODAL */}
+         {dateModalOpen && (
+            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDateModalOpen(false)}>
+               <div className="bg-white rounded-xl shadow-lg p-5 w-80" onClick={e => e.stopPropagation()}>
+                  <h3 className="font-bold text-gray-800 mb-4">Filter Date</h3>
+                  <div className="space-y-4">
+
+                     {/* 1. Specific Date */}
+                     <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">Specific Date</label>
+                        <input type="date" className="w-full border rounded p-2 text-sm mt-1"
+                           value={tempDate}
+                           onChange={e => { setTempDate(e.target.value); setTempRange({ start: "", end: "" }); }}
+                        />
+                     </div>
+
+                     <div className="text-center text-xs text-gray-400 font-bold">— OR —</div>
+
+                     {/* 2. Range */}
+                     <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">Date Range</label>
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                           <input type="date" className="border rounded p-2 text-xs"
+                              value={tempRange.start}
+                              onChange={e => { setTempRange({ ...tempRange, start: e.target.value }); setTempDate(""); }}
+                           />
+                           <input type="date" className="border rounded p-2 text-xs"
+                              value={tempRange.end}
+                              onChange={e => { setTempRange({ ...tempRange, end: e.target.value }); setTempDate(""); }}
+                           />
+                        </div>
+                     </div>
+
+                     <div className="flex justify-end gap-2 border-t pt-3">
+                        <button onClick={() => {
+                           setFilters({ ...filters, date: "", dateMin: "", dateMax: "" });
+                           setTempDate(""); setTempRange({ start: "", end: "" });
+                           setDateModalOpen(false);
+                        }} className="text-sm text-red-500 font-medium px-3 py-1">Clear</button>
+
+                        <button onClick={() => {
+                           if (tempDate) {
+                              setFilters({ ...filters, date: tempDate, dateMin: "", dateMax: "" });
+                           } else if (tempRange.start || tempRange.end) {
+                              setFilters({ ...filters, date: "", dateMin: tempRange.start, dateMax: tempRange.end });
+                           }
+                           setDateModalOpen(false);
+                        }} className="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg">Apply</button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
+
+         {/* EDIT MODAL */}
+         {editing && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditing(null)}>
+               <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                  <div className="px-6 py-4 border-b bg-white flex justify-between items-center shrink-0">
+                     <h2 className="text-lg font-bold text-gray-900">{editing.id ? "Edit Risk" : "New Risk"}</h2>
+                     <button onClick={() => setEditing(null)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400"><X className="w-5 h-5" /></button>
+                  </div>
+
+                  <div className="p-6 overflow-y-auto space-y-4">
+                     <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Project Name</label>
+                        <input className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 transition-colors" value={editing.project || ""} onChange={e => setEditing({ ...editing, project: e.target.value })} />
+                     </div>
+
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
+                           <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" value={editing.assessment_date || ""} onChange={e => setEditing({ ...editing, assessment_date: e.target.value })} />
+                        </div>
+                        <div>
+                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+                           <select className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white outline-none capitalize" value={editing.status} onChange={e => setEditing({ ...editing, status: e.target.value })}>
+                              {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                           </select>
+                        </div>
+                     </div>
+
+                     <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hazard Type</label>
+                        <input className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" value={editing.hazard_type || ""} onChange={e => setEditing({ ...editing, hazard_type: e.target.value })} />
+                     </div>
+
+                     <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div>
+                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Likelihood</label>
+                           <select className="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white capitalize outline-none" value={likelihood} onChange={e => setLikelihood(e.target.value)}>
+                              {LIKELIHOOD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                           </select>
+                        </div>
+                        <div>
+                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Impact</label>
+                           <select className="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white capitalize outline-none" value={impact} onChange={e => setImpact(e.target.value)}>
+                              {IMPACT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                           </select>
+                        </div>
+                     </div>
+
+                     <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mitigation Plan</label>
+                        <textarea className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 min-h-[80px]" value={editing.mitigation_plan || ""} onChange={e => setEditing({ ...editing, mitigation_plan: e.target.value })} />
+                     </div>
+                  </div>
+
+                  <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3 shrink-0">
+                     <button onClick={() => setEditing(null)} className="px-5 py-2 rounded-lg bg-white border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50">Cancel</button>
+                     <button onClick={handleSave} className="px-5 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-sm">Save Changes</button>
+                  </div>
+               </div>
+            </div>
+         )}
       </div>
-
-      {/* ─────────────── ID MODAL ─────────────── */}
-      {idModalOpen && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setIdModalOpen(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
-            <div className="space-y-4">
-               <h3 className="font-semibold text-gray-700">Filter by ID</h3>
-               <div className="grid grid-cols-2 gap-2">
-                 <input type="number" placeholder="Min" className="border rounded p-2 text-sm" value={idRange.min} onChange={e => setIdRange({...idRange, min: e.target.value})} />
-                 <input type="number" placeholder="Max" className="border rounded p-2 text-sm" value={idRange.max} onChange={e => setIdRange({...idRange, max: e.target.value})} />
-               </div>
-               <div className="flex justify-end gap-2">
-                 <button onClick={() => setIdModalOpen(false)} className="px-3 py-1.5 bg-gray-200 rounded text-sm">Close</button>
-                 <button onClick={() => { setFilters({...filters, idMin: idRange.min, idMax: idRange.max}); setIdModalOpen(false); }} className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm">Apply</button>
-               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─────────────── DATE MODAL ─────────────── */}
-      {dateModalOpen && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDateModalOpen(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
-            <div className="space-y-4">
-               <h3 className="font-semibold text-gray-700">Filter by Date</h3>
-               <div className="grid grid-cols-2 gap-2">
-                 <input type="date" className="border rounded p-2 text-sm" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} />
-                 <input type="date" className="border rounded p-2 text-sm" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} />
-               </div>
-               <div className="flex justify-end gap-2">
-                 <button onClick={() => setDateModalOpen(false)} className="px-3 py-1.5 bg-gray-200 rounded text-sm">Close</button>
-                 <button onClick={() => { setFilters({...filters, dateMin: dateRange.start, dateMax: dateRange.end}); setDateModalOpen(false); }} className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm">Apply</button>
-               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─────────────── EDIT / ADD MODAL ─────────────── */}
-      {editing && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditing(null)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-start mb-6">
-              <h2 className="text-xl font-bold text-gray-800">
-                {editing.id ? `Risk Assessment #${editing.id}` : "New Risk Assessment"}
-              </h2>
-              {/* Status Badge inside Modal */}
-              <div className={`px-3 py-1 rounded-full text-sm font-semibold border ${
-                getAutoStatus() === "Mitigated" ? "bg-green-100 text-green-700 border-green-300" : "bg-yellow-100 text-yellow-700 border-yellow-300"
-              }`}>
-                {getAutoStatus()}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
-              
-              {/* Project */}
-              <div>
-                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Project</label>
-                 <input
-                    type="text"
-                    value={editing.project}
-                    onChange={(e) => setEditing({ ...editing, project: e.target.value })}
-                    disabled={!canEdit}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:bg-gray-100"
-                  />
-              </div>
-
-              {/* Hazard Type */}
-              <div>
-                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Hazard Type</label>
-                 <input
-                    type="text"
-                    value={editing.hazard_type || editing.hazardType || ""}
-                    onChange={(e) => setEditing({ ...editing, hazard_type: e.target.value, hazardType: e.target.value })}
-                    disabled={!canEdit}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:bg-gray-100"
-                  />
-              </div>
-
-              {/* ─ Initial Section ─ */}
-              <div className="md:col-span-2 grid grid-cols-3 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <div className="col-span-3 text-sm font-bold text-gray-700">Initial Assessment</div>
-                
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Likelihood</label>
-                  <select
-                    value={initialLikelihood}
-                    onChange={(e) => setInitialLikelihood(Number(e.target.value))}
-                    disabled={!canEdit}
-                    className="w-full text-sm border rounded px-2 py-1"
-                  >
-                    {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Severity</label>
-                  <select
-                    value={initialSeverity}
-                    onChange={(e) => setInitialSeverity(Number(e.target.value))}
-                    disabled={!canEdit}
-                    className="w-full text-sm border rounded px-2 py-1"
-                  >
-                    {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
-                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Score</label>
-                  <input value={computedInitialRiskScore} disabled className="w-full text-sm bg-gray-200 border rounded px-2 py-1 font-bold text-center"/>
-                </div>
-              </div>
-
-              {/* ─ Residual Section ─ */}
-               <div className="md:col-span-2 grid grid-cols-3 gap-3 bg-blue-50 p-3 rounded-lg border border-blue-100">
-                <div className="col-span-3 text-sm font-bold text-gray-700">Residual Assessment</div>
-                
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Likelihood</label>
-                  <select
-                    value={residualLikelihood}
-                    onChange={(e) => setResidualLikelihood(Number(e.target.value))}
-                    disabled={!canEdit}
-                    className="w-full text-sm border rounded px-2 py-1"
-                  >
-                    {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Severity</label>
-                  <select
-                    value={residualSeverity}
-                    onChange={(e) => setResidualSeverity(Number(e.target.value))}
-                    disabled={!canEdit}
-                    className="w-full text-sm border rounded px-2 py-1"
-                  >
-                    {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
-                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Score</label>
-                  <input value={computedResidualRiskScore} disabled className="w-full text-sm bg-gray-200 border rounded px-2 py-1 font-bold text-center"/>
-                </div>
-              </div>
-
-              {/* Control Measures */}
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Control Measures</label>
-                <textarea
-                  value={editing.control_measures || editing.controlMeasures || ""}
-                  onChange={(e) => setEditing({ ...editing, control_measures: e.target.value, controlMeasures: e.target.value })}
-                  disabled={!canEdit}
-                  rows="3"
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:bg-gray-100"
-                />
-              </div>
-
-              {/* Date */}
-               <div>
-                 <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Date</label>
-                 <input
-                    type="date"
-                    value={editing.date}
-                    readOnly
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-600"
-                  />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-              <button
-                onClick={() => setEditing(null)}
-                className="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors"
-              >
-                {canEdit ? "Cancel" : "Close"}
-              </button>
-              {canEdit && (
-                <button
-                  onClick={handleSave}
-                  className="px-5 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-                >
-                  Save Assessment
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+   );
 }

@@ -9,10 +9,20 @@ import MfaSelector from "./AuthComponents/MfaSelector";
 const Mfa = () => {
   const [method, setMethod] = useState(null);
   const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
-    // 🔌 Call POST /api/auth/mfa/verify-code
+    setLoading(true);
+    try {
+      // 🔌 Call POST /api/auth/mfa/verify-code
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,26 +42,27 @@ const Mfa = () => {
         {/* Middle Section (Grows to fill space) */}
         <div className="flex-grow flex flex-col justify-center py-6 gap-6">
           <MfaSelector onSelect={setMethod} />
-          
+
           <form onSubmit={handleVerify} className="flex flex-col gap-6">
-            <InputField 
-              id="code" 
-              label="Verification Code" 
+            <InputField
+              id="code"
+              label="Verification Code"
               placeholder="Enter 6-digit code"
-              value={code} 
-              onChange={(e) => setCode(e.target.value)} 
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
             />
-            
+
             <div className="mt-2">
-              <AuthButton 
-                type="submit" 
-                label="Verify" 
-                disabled={!method || !code} 
+              <AuthButton
+                type="submit"
+                label="Verify"
+                isLoading={loading}
+                disabled={!method || !code}
               />
             </div>
           </form>
         </div>
-        
+
         {/* Bottom Spacer (Keep layout balanced) */}
         <div className="h-4"></div>
       </AuthCard>

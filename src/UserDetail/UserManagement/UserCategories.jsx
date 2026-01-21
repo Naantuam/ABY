@@ -5,12 +5,15 @@ import {
   ChevronRightIcon,
   ArrowLeftIcon,
   XMarkIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  BuildingOfficeIcon
 } from "@heroicons/react/24/outline";
 import EditUserModal from "./EditUserModal";
-import api from "../../api"; 
+import api from "../../api";
 
 export default function UserCategories() {
-  const [categories, setCategories] = useState([]); 
+  const [categories, setCategories] = useState([]);
   const [usersByCategory, setUsersByCategory] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,58 +25,54 @@ export default function UserCategories() {
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [newUserTempPassword, setNewUserTempPassword] = useState("");
 
-  // --- FETCH ALL PAGES (Fixes the "Invisible User" bug) ---
+  // ──────────────────────────────────────────────
+  // 1️⃣ FETCH DATA
+  // ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // 1️⃣ FETCH DATA
+  // ──────────────────────────────────────────────
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      // 1. Fetch Roles
+
+      // 🔹 Fetch Roles dynamically
       const rolesRes = await api.get("/users/roles/");
-      // Handle array vs paginated response for roles
-      let rolesList = Array.isArray(rolesRes.data) ? rolesRes.data : rolesRes.data.results || [];
-      
-      // Remove Staff
-      rolesList = rolesList.filter(role => role.label !== "Staff" && role.key !== "staff");
+      const rolesData = Array.isArray(rolesRes.data) ? rolesRes.data : (rolesRes.data.results || []);
+
+      const rolesList = rolesData.map(role => ({
+        key: role.key ?? role.id,
+        label: role.label ?? role.name,
+        permissions: role.permissions || []
+      }));
+
       setCategories(rolesList);
 
-      // 2. Fetch ALL Users (Loop through pages automatically)
       let allUsers = [];
-      let nextUrl = "/users/"; // Start at page 1
-      
-      console.log("⏳ Starting User Fetch...");
+      let nextUrl = "/users/";
 
       while (nextUrl) {
-        // We use api.get(nextUrl)
         const res = await api.get(nextUrl);
         const data = res.data;
-
-        // Add this page of users to our list
         const pageUsers = Array.isArray(data) ? data : data.results || [];
         allUsers = [...allUsers, ...pageUsers];
 
-        // Check if backend says there is a "next" page
         if (data.next) {
-            // Extract the relative link (e.g., "/users/?page=2")
-            const urlObj = new URL(data.next);
-            nextUrl = urlObj.pathname + urlObj.search;
-            console.log("🔄 Found more users... Fetching next page:", nextUrl);
+          const urlObj = new URL(data.next);
+          nextUrl = urlObj.pathname + urlObj.search;
         } else {
-            nextUrl = null; // No more pages, stop looping
+          nextUrl = null;
         }
       }
 
-      console.log(`✅ Total Users Fetched: ${allUsers.length}`);
-
-      // 3. Group Users (Using backend labels/keys)
       const groupedUsers = rolesList.reduce((acc, category) => {
         acc[category.key] = allUsers.filter((user) => {
-          // Label Match (Best reliability)
+          // Check both role name (label) and ID (key)
+          // The backend might return role_label or just role ID
           if (user.role_label && user.role_label === category.label) return true;
-          // Key Match
           if (user.role === category.key) return true;
-          // ID Match
-          if (category.id && user.role === category.id) return true;
-
+          if (String(user.role) === String(category.key)) return true;
+          // Also check nested role object if applicable
+          if (user.role && typeof user.role === 'object' && user.role.id === category.key) return true;
           return false;
         });
         return acc;
@@ -84,96 +83,96 @@ export default function UserCategories() {
 
     } catch (err) {
       console.error("Failed to fetch data:", err);
-      setError("Could not load user and role data.");
+      // Fallback or empty state
+      setCategories([]);
     } finally {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchData();
   }, []);
 
-  const handleAddCategory = async (e) => {
-    e.preventDefault();
-    if (newCategory.trim()) {
-      try {
-        await api.post("/users/roles/", {
-          name: newCategory.trim(),
-        });
-        setNewCategory("");
-        setShowForm(false);
-        fetchData(); 
-      } catch (err) {
-        console.error("Failed to create category", err);
-        alert("Error: Could not create the new category.");
-      }
-    }
-  };
+  // ──────────────────────────────────────────────
+  // 2️⃣ HANDLERS
+  // ──────────────────────────────────────────────
 
-  // ✅ CREATE USER (Trusting Backend Mapping)
   const handleCreateUser = async (e) => {
     e.preventDefault();
     const form = e.target;
+    let roleToAssign = selectedCategory.key;
 
-    // 1. Resolve Role
-    // If the category has an ID (e.g. 1), use it.
-    // If not, use the Key (e.g. "project_manager") and let backend map it.
-    let roleToAssign = selectedCategory.id || selectedCategory.key;
+    if (roleToAssign === undefined || roleToAssign === null) return;
 
-    if (!roleToAssign) {
-      alert(`Error: The category '${selectedCategory.label}' has no ID or Key. Cannot create user.`);
-      return;
-    }
-
-    // 2. Generate Temp Password
     const tempPassword = Math.random().toString(36).slice(-8) + "Aa1!";
 
-    // 3. Payload
     const newUserPayload = {
       username: form.name.value,
       email: form.email.value,
       phone_number: form.phone.value,
       department: form.department.value,
       password: tempPassword,
-      role: roleToAssign // Sends ID (1) OR String ("project_manager")
+      // Pass role ID if creating user with role directly is supported, 
+      // otherwise we might need to assign it after creation
+      role: roleToAssign
     };
 
     try {
-      console.log("🚀 Sending Creation Request:", newUserPayload);
-      
-      const response = await api.post('/users/create-with-role/', newUserPayload);
-      
-      console.log("✅ Success:", response.data);
-      
-      setNewUserTempPassword(tempPassword);
-      
-      // Refresh list
-      fetchData(); 
-      
-      alert(`User ${newUserPayload.username} created successfully!`);
+      // 🔹 Use atomic Create with Role endpoint
+      const res = await api.post('/users/create-with-role/', {
+        ...newUserPayload,
+        role_id: roleToAssign // Backend likely expects role_id for this specific endpoint
+      });
 
+      // No need for second API call
+      // The response usually contains the created user
+
+      setNewUserTempPassword(tempPassword);
+
+      setNewUserTempPassword(tempPassword);
+      fetchData();
+      alert(`User created!`);
     } catch (err) {
-      console.error("❌ Creation Failed:", err);
-      let errorMessage = "Could not create the new user.";
-      
-      if (err.response?.data) {
-          const apiErrors = err.response.data;
-          if (typeof apiErrors === 'object') {
-             errorMessage = Object.entries(apiErrors)
-              .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(" ") : val}`)
-              .join("\n");
-          } else {
-             errorMessage = apiErrors;
-          }
-      }
-      alert(`Error:\n${errorMessage}`);
+      console.error(err);
+      alert("Creation failed.");
     }
   };
-  
+  // ✅ DELETE USER HANDLER
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this user?")) return;
+
+    try {
+      await api.delete(`/users/${userId}/delete/`); // Check your API for exact endpoint
+      // Update UI
+      const updatedList = { ...usersByCategory };
+      // Remove user from the current category list
+      if (selectedCategory) {
+        updatedList[selectedCategory.key] = updatedList[selectedCategory.key].filter(u => u.id !== userId);
+      }
+      setUsersByCategory(updatedList);
+      setSelectedUser(null); // Close modal
+      alert("User deleted successfully.");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete user.");
+    }
+  };
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (newCategory.trim()) {
+      try {
+        await api.post("/users/roles/create/", { name: newCategory.trim() });
+        setNewCategory("");
+        setShowForm(false);
+        fetchData();
+      } catch (err) { alert("Failed to create category"); }
+    }
+  };
+
   const handleSaveUser = async (updatedUser) => {
     try {
-      // 1️⃣ Update Basic Info
       await api.put(`/users/${updatedUser.id}/update/`, {
         username: updatedUser.username,
         email: updatedUser.email,
@@ -181,50 +180,33 @@ export default function UserCategories() {
         department: updatedUser.department,
       });
 
-      // 2️⃣ Update Role (if changed)
-      if (updatedUser.role_id) { 
-         await api.put(`/users/${updatedUser.id}/assign-role/`, {
-           role_id: updatedUser.role_id
-         });
+      if (updatedUser.role_id !== undefined) {
+        await api.put(`/users/${updatedUser.id}/assign-role/`, {
+          role_id: updatedUser.role_id
+        });
       }
-
       setSelectedUser(null);
-      fetchData(); 
-      alert("User updated successfully.");
-    } catch (err) {
-      console.error("Failed to update user:", err);
-      const errorMsg = err.response?.data 
-        ? Object.entries(err.response.data).map(([k, v]) => `${k}: ${v}`).join("\n") 
-        : "Could not update user.";
-      alert(`Error:\n${errorMsg}`);
-    }
+      fetchData();
+      alert("Updated.");
+    } catch (err) { alert("Failed to update."); }
   };
 
   const handleRevokePermissions = async (userId) => {
-    if (window.confirm("Are you sure you want to revoke all permissions for this user?")) {
+    if (window.confirm("Revoke permissions?")) {
       try {
         let userToUpdate;
         for (const category in usersByCategory) {
           userToUpdate = usersByCategory[category].find((u) => u.id === userId);
           if (userToUpdate) break;
         }
+        if (!userToUpdate) return;
 
-        if (!userToUpdate) {
-          alert("Error: Could not find user.");
-          return;
-        }
-
-        const updatedUser = { ...userToUpdate, permissions: {} }; 
-
+        const updatedUser = { ...userToUpdate, permissions: {} };
         await api.put(`/users/${updatedUser.id}/update/`, updatedUser);
-
         fetchData();
         setSelectedUser(updatedUser);
-        alert("User permissions revoked successfully.");
-      } catch (err) {
-        console.error("Failed to revoke permissions:", err);
-        alert("Error: Could not revoke permissions.");
-      }
+        alert("Revoked.");
+      } catch (err) { alert("Error."); }
     }
   };
 
@@ -233,201 +215,200 @@ export default function UserCategories() {
     setNewUserTempPassword("");
   };
 
-  if (loading) return <div className="p-4">Loading user data...</div>;
-  if (error) return <div className="p-4 text-red-500">{error}</div>;
+  if (loading) return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div></div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
-    <div className="p-4 bg-gray-50 min-h-full">
-      {!selectedCategory ? (
-        // Categories Grid
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {categories.map((category) => (
-          <div
-            key={category.key} 
-            onClick={() => setSelectedCategory(category)}
-            className="flex items-center justify-between bg-white rounded-xl shadow-sm px-4 py-3 cursor-pointer hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center gap-2">
-              <UserIcon className="h-4 w-4 text-gray-700" />
-              <span className="font-medium text-gray-700">{category.label}</span>
-            </div>
-            <ChevronRightIcon className="h-3 w-3 text-gray-400" />
-          </div>
-          ))}
+    <div className="p-3 sm:p-6 bg-gray-50 min-h-screen font-sans">
 
-          {/* Add Category Card */}
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex flex-row items-center justify-center p-2 bg-blue-50 border-2 border-dashed border-blue-400 rounded-xl hover:bg-blue-100 transition"
-          >
-            <span className="text-blue-600 font-medium">Add Category</span>
-          </button>
+      {/* VIEW 1: CATEGORIES GRID */}
+      {!selectedCategory ? (
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-lg font-bold text-gray-800 mb-4 px-1">User Roles</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {categories.map((category) => (
+              <div
+                key={category.key}
+                onClick={() => setSelectedCategory(category)}
+                className="group flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-3 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <UserIcon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">{category.label}</h3>
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      {usersByCategory[category.key]?.length || 0} Staff
+                    </p>
+                  </div>
+                </div>
+                <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-blue-500" />
+              </div>
+            ))}
+
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center justify-center p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition-all gap-2"
+            >
+              <PlusIcon className="h-4 w-4" />
+              <span className="text-xs font-bold uppercase tracking-wide">Add Role</span>
+            </button>
+          </div>
         </div>
       ) : (
-       // Selected Category Table
-        <div className="bg-white rounded-xl shadow-md p-4">
-          
-          {/* Header Row with Back Button */}
-          <div className="flex justify-between mb-4">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-              title="Back to Categories"
-            >
-              <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+
+        /* VIEW 2: SELECTED USER LIST (TIGHT TABLE) */
+        <div className="max-w-7xl mx-auto">
+
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setSelectedCategory(null)} className="p-1.5 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 shadow-sm">
+                <ArrowLeftIcon className="h-3 w-3" />
+              </button>
+              <h2 className="text-base font-bold text-gray-800">{selectedCategory.label}</h2>
+            </div>
+            <button onClick={() => setShowAddUserForm(true)} className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
+              <PlusIcon className="h-3 w-3" /> Add User
             </button>
-            <h2 className="text-base font-semibold">{selectedCategory.label}</h2>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border px-2 py-2 text-left text-sm">Names</th>
-                  <th className="border px-2 py-2 text-left text-sm">Emails</th>
-                  <th className="border px-2 py-2 text-left text-sm">Phone No</th>
-                  <th className="border px-2 py-2 text-left text-sm">Department</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usersByCategory[selectedCategory.key]?.map((u) => (
-                  <tr
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+
+            {/* 🖥️ DESKTOP: Tight Table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 text-gray-700 text-xs uppercase font-bold tracking-wider border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-2">Name</th>
+                    <th className="px-4 py-2">Email</th>
+                    <th className="px-4 py-2">Phone</th>
+                    <th className="px-4 py-2">Department</th>
+                    <th className="px-4 py-2 text-right"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-sm">
+                  {usersByCategory[selectedCategory.key]?.length > 0 ? (
+                    usersByCategory[selectedCategory.key].map((u) => (
+                      <tr
+                        key={u.id || u.email}
+                        onClick={() => setSelectedUser(u)}
+                        className="hover:bg-blue-50/40 cursor-pointer transition-colors group"
+                      >
+                        <td className="px-4 py-2.5 font-medium text-black flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">
+                            {u.username.charAt(0).toUpperCase()}
+                          </div>
+                          {u.username}
+                        </td>
+                        <td className="px-4 py-2.5 text-black">{u.email}</td>
+                        <td className="px-4 py-2.5 text-black">{u.phone_number || "-"}</td>
+                        <td className="px-4 py-2.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-gray-100 text-black border border-gray-200">
+                            {u.department}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-blue-500 ml-auto" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="px-4 py-8 text-center text-gray-600 italic">No users found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 📱 MOBILE: Tight List */}
+            <div className="block sm:hidden divide-y divide-gray-100">
+              {usersByCategory[selectedCategory.key]?.length > 0 ? (
+                usersByCategory[selectedCategory.key].map((u) => (
+                  <div
                     key={u.id || u.email}
                     onClick={() => setSelectedUser(u)}
-                    className="hover:bg-gray-50 cursor-pointer text-xs md:text-sm"
+                    className="p-3 active:bg-gray-50 cursor-pointer"
                   >
-                    <td className="border px-2 py-2">{u.username}</td>
-                    <td className="border px-2 py-2">{u.email}</td>
-                    <td className="border px-2 py-2">{u.phone_number}</td>
-                    <td className="border px-2 py-2">{u.department}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Add Staff Button */}
-                <div className="flex justify-end mt-4">
-                <button
-                  onClick={() => setShowAddUserForm(true)}
-                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
-                >
-                  <PlusIcon className="h-4 w-4" /> {`Add ${selectedCategory.label}`}
-                </button>
-                </div>
-              </div>
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold border border-indigo-100">
+                          {u.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 leading-tight">{u.username}</p>
+                          <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                            <BuildingOfficeIcon className="w-3 h-3" /> {u.department}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-gray-400 text-sm italic">No users found.</div>
               )}
+            </div>
 
-              {selectedUser && (
-              <EditUserModal
-                selectedUser={selectedUser}
-                selectedCategory={selectedCategory}
-                categories={categories}
-                setSelectedUser={setSelectedUser}
-                handleSaveUser={handleSaveUser}
-                handleRevokePermissions={handleRevokePermissions}
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────── */}
+      {/* MODALS (Simplified for Brevity)        */}
+      {/* ────────────────────────────────────── */}
+
+      {selectedUser && (
+        <EditUserModal
+          selectedUser={selectedUser}
+          selectedCategory={selectedCategory}
+          categories={categories}
+          setSelectedUser={setSelectedUser}
+          handleSaveUser={handleSaveUser}
+          handleRevokePermissions={handleRevokePermissions}
+          handleDeleteUser={handleDeleteUser}
         />
       )}
 
-      {/* Modal for adding new category */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-96 p-6">
-            <h2 className="text-lg font-semibold mb-4">Add User Category</h2>
-            <form onSubmit={handleAddCategory} className="space-y-4">
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="Enter category name"
-                className="w-full border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-              />
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 rounded-lg border hover:bg-gray-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Save
-                </button>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-xs p-5">
+            <h2 className="text-base font-bold text-gray-900 mb-4">New Role</h2>
+            <form onSubmit={handleAddCategory} className="space-y-3">
+              <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Role Name" className="w-full border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none" autoFocus />
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowForm(false)} className="px-3 py-1.5 rounded text-xs font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
+                <button type="submit" className="px-3 py-1.5 rounded text-xs font-bold bg-blue-600 text-white hover:bg-blue-700">Create</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal for adding user */}
       {showAddUserForm && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-800">
-                {`Add ${selectedCategory.label}`}
-              </h2>
-              <button
-                onClick={closeAddUserModal}
-                className="text-gray-500 hover:text-gray-800"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-base font-bold text-gray-900">Add User</h2>
+              <button onClick={closeAddUserModal}><XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" /></button>
             </div>
-            <form onSubmit={handleCreateUser} className="space-y-4 mt-4">
-              <input
-                name="name"
-                placeholder="Full Name"
-                required
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                name="email"
-                type="email"
-                placeholder="Email"
-                required
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                name="phone"
-                placeholder="Phone"
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                name="department"
-                placeholder="Department"
-                required
-                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-
+            <form onSubmit={handleCreateUser} className="space-y-3">
+              <input name="name" placeholder="Full Name" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              <input name="email" type="email" placeholder="Email" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              <div className="grid grid-cols-2 gap-2">
+                <input name="phone" placeholder="Phone" className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                <input name="department" placeholder="Dept" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              </div>
               {newUserTempPassword && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                  <p className="text-sm text-blue-700">
-                    User created! Temporary password:
-                  </p>
-                  <p className="font-mono font-semibold text-blue-900 bg-blue-100 rounded mt-1 px-2 py-1 inline-block">
-                    {newUserTempPassword}
-                  </p>
+                <div className="p-3 bg-green-50 border border-green-100 rounded-lg text-center">
+                  <p className="text-xs text-green-700 mb-1">Success! Password:</p>
+                  <code className="bg-white px-2 py-1 rounded border border-green-200 text-green-800 font-bold text-sm">{newUserTempPassword}</code>
                 </div>
               )}
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeAddUserModal}
-                  className="px-4 py-2 rounded-lg border hover:bg-gray-100 text-sm font-medium"
-                >
-                  Close
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
-                >
-                  Create User
-                </button>
+              <div className="pt-2 flex justify-end">
+                {!newUserTempPassword && <button type="submit" className="w-full py-2 rounded-md bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Create Account</button>}
+                {newUserTempPassword && <button type="button" onClick={closeAddUserModal} className="w-full py-2 rounded-md bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200">Done</button>}
               </div>
             </form>
           </div>

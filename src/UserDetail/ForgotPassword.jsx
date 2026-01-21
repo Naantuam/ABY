@@ -9,10 +9,20 @@ import { Mail } from "lucide-react"; // Optional: Add icon for consistency
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // 🔌 Call POST /api/auth/password/forgot
+    setLoading(true);
+    try {
+      // 🔌 Call POST /api/auth/password/forgot
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,25 +42,25 @@ const ForgotPassword = () => {
         {/* Middle Section (Form) */}
         <div className="flex-grow flex flex-col justify-center py-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <InputField 
-              id="email" 
-              label="Email" 
-              type="email" 
+            <InputField
+              id="email"
+              label="Email"
+              type="email"
               placeholder="Enter your email"
-              value={email} 
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
-              Icon={Mail} 
+              Icon={Mail}
             />
-            
+
             <div className="mt-2">
-              <AuthButton type="submit" label="Send Reset Link" />
+              <AuthButton type="submit" label="Send Reset Link" isLoading={loading} />
             </div>
           </form>
         </div>
 
         {/* Bottom Section: Back to Login */}
         <div className="flex justify-center items-center pb-4 md:pb-0">
-           <AuthLink to="/">Back to Login</AuthLink>
+          <AuthLink to="/">Back to Login</AuthLink>
         </div>
       </AuthCard>
     </AuthLayout>

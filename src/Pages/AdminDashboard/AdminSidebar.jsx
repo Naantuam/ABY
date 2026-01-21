@@ -48,7 +48,7 @@ export default function AdminSidebar({ sidebarOpen, setSidebarOpen }) {
           </button>
 
           {/* Header with logo - Restored to h-30 w-30 */}
-          <div className="flex flex-col items-center mb-5 pt-2">
+          <div className="flex flex-col items-center pt-2">
             <img
               src={logo}
               alt="Logo"

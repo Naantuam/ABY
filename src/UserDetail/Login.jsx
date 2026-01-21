@@ -50,7 +50,7 @@ const Login = () => {
   return (
     <AuthLayout>
       <AuthCard>
-        
+
         {/* Top Section: Logo & Title */}
         <div className="flex flex-col items-center justify-center mt-4 md:mt-0">
           <Logo />
@@ -87,8 +87,8 @@ const Login = () => {
             <div className="mt-4">
               <AuthButton
                 type="submit"
-                label={loading ? "Logging in..." : "Login"}
-                disabled={loading}
+                label="Login"
+                isLoading={loading}
               />
             </div>
           </form>

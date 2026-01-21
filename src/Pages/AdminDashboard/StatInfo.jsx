@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import api from "../../api"; 
+import api from "../../api";
 import StatCard from "./StatCard";
 import {
   UserGroupIcon,
   Cog6ToothIcon,
-  FolderIcon, 
+  FolderIcon,
   ShieldExclamationIcon,
   ArchiveBoxIcon,
 } from "@heroicons/react/24/solid";
@@ -14,7 +14,7 @@ export default function StatInfo() {
   const [userStats, setUserStats] = useState({
     total: 0, active: 0, inactive: 0, employee: 0, loading: true,
   });
-  
+
   // 2. STATE FOR EQUIPMENT STATS
   const [equipmentStats, setEquipmentStats] = useState({
     total: 0, available: 0, active: 0, repair: 0, retired: 0, loading: true,
@@ -34,8 +34,8 @@ export default function StatInfo() {
   useEffect(() => {
     async function fetchUserStats() {
       try {
-        const response = await api.get("/users/stats/"); 
-        const data = response.data; 
+        const response = await api.get("/users/stats/");
+        const data = response.data;
 
         setUserStats({
           total: data.total_users,
@@ -51,14 +51,14 @@ export default function StatInfo() {
     }
     fetchUserStats();
   }, []);
-  
+
   // --- EFFECT FOR EQUIPMENT STATS ---
   useEffect(() => {
     async function fetchEquipmentStats() {
       try {
-        const response = await api.get("/equipment/stats/"); 
-        const data = response.data; 
-        
+        const response = await api.get("/equipment/stats/");
+        const data = response.data;
+
         const total = data.total_equipment + data.active_equipment + data.repair_equipment + data.retired_equipment;
 
         setEquipmentStats({
@@ -82,8 +82,8 @@ export default function StatInfo() {
     async function fetchProjectStats() {
       try {
         const response = await api.get("/projects/stats/");
-        const data = response.data; 
-        
+        const data = response.data;
+
         setProjectStats({
           total: data.total_projects,
           active: data.active_projects,
@@ -105,9 +105,9 @@ export default function StatInfo() {
   useEffect(() => {
     async function fetchSafetyStats() {
       try {
-        const response = await api.get("/safety/safety-incidents/stats/"); 
-        const data = response.data; 
-        
+        const response = await api.get("/safety/safety-incidents/stats/");
+        const data = response.data;
+
         setSafetyStats({
           total: data.total_incidents,
           recent: data.recent_incidents,
@@ -131,17 +131,17 @@ export default function StatInfo() {
   return (
     <div className="w-full flex justify-center items-center bg-gray-50">
       <div className="w-[93%] md:w-[96%] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        
+
         {/* User Stats Card */}
         <StatCard
           title="Users"
-          count={userStats.total} 
+          count={userStats.total}
           icon={UserGroupIcon}
           href="/admin/users"
           badges={[
-            { label: "Active", color: "green", number: userStats.active }, 
-            { label: "Inactive", color: "red", number: userStats.inactive }, 
-            { label: "Employees", color: "blue", number: userStats.employee }, 
+            { label: "Active", color: "green", number: userStats.active },
+            { label: "Inactive", color: "red", number: userStats.inactive },
+            { label: "Employees", color: "blue", number: userStats.employee },
           ]}
         />
 
@@ -168,8 +168,8 @@ export default function StatInfo() {
           badges={[
             { label: "Completed", color: "green", number: projectStats.completed },
             { label: "Active", color: "blue", number: projectStats.active },
-            { label: "Delayed", color: "yellow", number: projectStats.delayed }, 
-            { label: "Cancelled", color: "red", number: projectStats.cancelled }, 
+            { label: "Delayed", color: "yellow", number: projectStats.delayed },
+            { label: "Cancelled", color: "red", number: projectStats.cancelled },
           ]}
         />
 

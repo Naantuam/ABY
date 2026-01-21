@@ -1,4 +1,5 @@
 import React from "react";
+import { X, Camera } from "lucide-react";
 
 export default function UserProfileModal({
   selectedEmployee,
@@ -6,209 +7,137 @@ export default function UserProfileModal({
   setEditingEmployee,
   handleSaveModal,
   setSelectedEmployee,
-//   isAdmin,
 }) {
   if (!selectedEmployee || !editingEmployee) return null;
 
+  const handleChange = (field, value) => {
+    setEditingEmployee({ ...editingEmployee, [field]: value });
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div className="items-center md:items-start">
-            {/* Profile Picture Box */}
-            <div className="relative w-40 h-40 rounded-lg bg-slate-100 flex items-center justify-center border">
-              {editingEmployee.picture ? (
-                <img
-                  src={editingEmployee.picture}
-                  alt="Profile"
-                  className="w-full h-full object-cover rounded-lg"
-                />
-              ) : (
-                <svg
-                  className="w-20 h-20 text-slate-300"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                    clipRule="evenodd"
-                  ></path>
-                </svg>
-              )}
-              <button className="absolute top-2 left-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors">
-                <svg
-                  className="w-5 h-5 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-              </button>
-            </div>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Edit Profile</h2>
+            <p className="text-xs text-gray-500 font-mono">ID: {editingEmployee.id}</p>
+          </div>
+          <button
+            onClick={() => setSelectedEmployee(null)}
+            className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div className="grid grid-cols-2 gap-2 md:col-span-2">
-            {/* ID */}
-            <div>
-              <p className="text-gray-700 text-xs font-sm">ID Number:</p>
-              <input
-                type="text"
-                value={editingEmployee.id || ""}
-                readOnly
-                className="w-20 text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
+
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex flex-col sm:flex-row gap-6">
+
+            {/* Left Column: Avatar */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative group w-28 h-28 rounded-full bg-slate-100 border-4 border-white shadow-sm flex items-center justify-center overflow-hidden">
+                {editingEmployee.picture ? (
+                  <img
+                    src={editingEmployee.picture}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-3xl font-bold text-slate-300">
+                    {editingEmployee.name?.charAt(0) || "U"}
+                  </span>
+                )}
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <span className="text-xs text-blue-600 font-medium cursor-pointer hover:underline">Change Photo</span>
             </div>
 
-            {/* Name */}
-            <div>
-              <p className="text-gray-700 text-xs font-sm">Full Name:</p>
-              <input
-                type="text"
-                value={editingEmployee.name || ""}
-                onChange={(e) =>
-                  setEditingEmployee({
-                    ...editingEmployee,
-                    name: e.target.value,
-                  })
-                }
-                className="w-auto text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
+            {/* Right Column: Form Fields */}
+            <div className="flex-1 space-y-4">
 
-            {/* Phone */}
-            <div>
-              <p className="text-gray-700 text-xs font-sm">Phone Number:</p>
-              <input
-                type="text"
-                value={editingEmployee.phone || ""}
-                onChange={(e) =>
-                  setEditingEmployee({
-                    ...editingEmployee,
-                    phone: e.target.value,
-                  })
-                }
-                className="w-auto text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={editingEmployee.name || ""}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  className="w-full text-sm border-b border-gray-300 py-1 focus:border-blue-500 focus:outline-none transition-colors bg-transparent placeholder-gray-300"
+                  placeholder="John Doe"
+                />
+              </div>
 
-            {/* Email */}
-            <div>
-              <p className="text-gray-700 text-xs font-sm">Email:</p>
-              <input
-                type="email"
-                value={editingEmployee.email || ""}
-                onChange={(e) =>
-                  setEditingEmployee({
-                    ...editingEmployee,
-                    email: e.target.value,
-                  })
-                }
-                className="w-full text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={editingEmployee.phone || ""}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    className="w-full text-sm border-b border-gray-300 py-1 focus:border-blue-500 focus:outline-none transition-colors bg-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editingEmployee.email || ""}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    className="w-full text-sm border-b border-gray-300 py-1 focus:border-blue-500 focus:outline-none transition-colors bg-transparent"
+                  />
+                </div>
+              </div>
 
-            {/* Date of Birth */}
-            <div>
-              <p className="text-gray-700 text-xs font-sm">Date of Birth:</p>
-              <input
-                type="date"
-                value={editingEmployee.dateOfBirth || ""}
-                onChange={(e) =>
-                  setEditingEmployee({
-                    ...editingEmployee,
-                    dateOfBirth: e.target.value,
-                  })
-                }
-                className="w-35 text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Rank</label>
+                  <select
+                    value={editingEmployee.rank || ""}
+                    onChange={(e) => handleChange("rank", e.target.value)}
+                    className="w-full text-sm border-b border-gray-300 py-1 focus:border-blue-500 focus:outline-none transition-colors bg-transparent"
+                  >
+                    <option value="">Select Rank</option>
+                    <option value="Administrator">Administrator</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Staff">Staff</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount (₦)</label>
+                  <input
+                    type="number"
+                    value={editingEmployee.amount || ""}
+                    onChange={(e) => handleChange("amount", e.target.value)}
+                    className="w-full text-sm border-b border-gray-300 py-1 focus:border-blue-500 focus:outline-none transition-colors bg-transparent"
+                  />
+                </div>
+              </div>
 
-            {/* Blood Group */}
-            <div>
-              <p className="text-gray-700 text-xs font-sm">Blood Group:</p>
-              <input
-                type="text"
-                value={editingEmployee.bloodGroup || ""}
-                onChange={(e) =>
-                  setEditingEmployee({
-                    ...editingEmployee,
-                    bloodGroup: e.target.value,
-                  })
-                }
-                className="w-20 text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
-
-            {/* Department */}
-            <div>
-              <p className="text-gray-700 text-xs font-sm">Department:</p>
-              <input
-                type="text"
-                value={editingEmployee.department || ""}
-                onChange={(e) =>
-                  isAdmin &&
-                  setEditingEmployee({
-                    ...editingEmployee,
-                    department: e.target.value,
-                  })
-                }
-                // readOnly={!isAdmin}
-                className="w-auto text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
-
-            {/* Rank */}
-            <div>
-              <p className="text-gray-700 text-xs font-sm">Rank:</p>
-              <input
-                type="text"
-                value={editingEmployee.rank || ""}
-                onChange={(e) =>
-                //   isAdmin &&
-                  setEditingEmployee({
-                    ...editingEmployee,
-                    rank: e.target.value,
-                  })
-                }
-                // readOnly={!isAdmin}
-                className="w-auto text-sm rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              />
-            </div>
-
-            {/* Buttons */}
-            <div className="pt-2 flex gap-2">
-              <button
-                onClick={() => handleSaveModal(editingEmployee)}
-                className="text-sm px-2 py-2 rounded-lg border border-blue-500 text-blue-500 font-medium hover:bg-blue-50 transition-colors"
-              >
-                Save Profile
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedEmployee(null);
-                  setEditingEmployee(null);
-                }}
-                className="text-sm px-2 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
             </div>
           </div>
         </div>
+
+        {/* Footer Actions */}
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+          <button
+            onClick={() => { setSelectedEmployee(null); setEditingEmployee(null); }}
+            className="px-4 py-2 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => handleSaveModal(editingEmployee)}
+            className="px-6 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
+          >
+            Save Changes
+          </button>
+        </div>
+
       </div>
     </div>
   );

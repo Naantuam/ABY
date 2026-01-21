@@ -1,849 +1,594 @@
-import { useState } from "react";
-import {Download, Trash} from "lucide-react";
-
+import { useState, useEffect } from "react";
+import {
+  Download, Trash, Plus, Eye, Edit, X, User, Users,
+  Search, Filter, ChevronDown, MapPin
+} from "lucide-react";
+import api from "../../api";
 
 export default function ProjectList() {
-  const [projects, setProjects] = useState([
-    {
-      id: "1",
-      name: "Building Magazine house",
-      location: "Jos",
-      startDate: "2022-05-15",
-      endDate: "2022-05-15",
-      budget: "$120,000",
-      status: "Completed",
-    },
-    {
-      id: "2",
-      name: "Opening New Site",
-      location: "Taraba",
-      startDate: "2022-05-15",
-      endDate: "2022-05-15",
-      budget: "$120,000",
-      status: "Active",
-    },
-    {
-      id: "3",
-      name: "Fencing Yard",
-      location: "Bauchi",
-      startDate: "2022-05-15",
-      endDate: "2022-05-15",
-      budget: "$120,000",
-      status: "Cancelled",
-    },
-    {
-      id: "4",
-      name: "Concrete Mixer",
-      location: "Gombe",
-      startDate: "2022-05-15",
-      endDate: "2022-05-10",
-      budget: "$130,000",
-      status: "Active",
-    },
-    {
-      id: "5",
-      name: "Building Down tower",
-      location: "Kaduna",
-      startDate: "2021-05-15",
-      endDate: "2022-05-15",
-      budget: "$120,000",
-      status: "Active",
-    },
-  ]);
+  const [projects, setProjects] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // 🔹 CSV Export Utility
-  function convertToCSV(data) {
-    const headers = Object.keys(data[0]);
-    const rows = data.map((row) => headers.map((field) => row[field]).join(","));
-    return [headers.join(","), ...rows].join("\n");
-  }
+  // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("view");
+  const [currentProject, setCurrentProject] = useState(null);
 
-  const [editingRowId, setEditingRowId] = useState(null);
-  const [originalItem, setOriginalItem] = useState(null); // store item before edit
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null); // "save" or "delete"
-
-  const [filters, setFilters] = useState({ 
-    status: "", 
-    sn: "",
-    snMin: "",
-    snMax: "", 
-    name: "",      
-    location: "",  
-    budget: "",       
-    budgetMin: "",    
-    budgetMax: "",  
-    startDate: "",
-    endDate: ""  
-  });
-
-  // Modal states for filters 
+  // Filter Modal States (Desktop)
   const [snModalOpen, setSnModalOpen] = useState(false);
+  const [dateModalOpen, setDateModalOpen] = useState(false);
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
 
-  // Range states
+  // Mobile Filter Drawer State
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [mobileSearch, setMobileSearch] = useState("");
+
+  // Filter Values
+  const [filters, setFilters] = useState({
+    name: "", location: "", status: "", owner: "", team: "",
+    snMin: "", snMax: "",
+    dateMin: "", dateMax: "",
+    budgetMin: "", budgetMax: ""
+  });
+
+  // Range Local States
   const [snRange, setSnRange] = useState({ min: "", max: "" });
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [budgetRange, setBudgetRange] = useState({ min: "", max: "" });
 
-  const [visibleCount, setVisibleCount] = useState(10); // show 10 rows initially
+  const [visibleCount, setVisibleCount] = useState(10);
 
-  // 🔹 Status color badges
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Completed":
-        return "bg-green-500 text-white";
-      case "Active":
-        return "bg-blue-400 text-black";
-      case "Delayed":
-      return "bg-yellow-400 text-black";
-      case "Cancelled":
-        return "bg-red-500 text-white";
-      default:
-        return "bg-gray-400 text-white";
+  // Check active filters for mobile badge
+  const hasActiveFilters =
+    filters.status || filters.owner || filters.team || filters.location ||
+    filters.snMin || filters.dateMin || filters.budgetMin;
+
+  // ────────────────────────────────
+  // 1️⃣ Fetch Data
+  // ────────────────────────────────
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const projectRes = await api.get("/projects/");
+      const formattedProjects = (projectRes.data.results || projectRes.data || []).map((p) => ({
+        ...p,
+        id: p.id,
+        name: p.project_name,
+        startDate: p.start_date,
+        endDate: p.end_date,
+        budget: p.budget,
+        owner: p.owner || null,
+        assigned_team: p.assigned_team || []
+      }));
+      setProjects(formattedProjects);
+
+      const userRes = await api.get("/users/");
+      setAllUsers(userRes.data.results || userRes.data || []);
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 🔹 Export CSV
-  const handleExport = () => {
-    if (filteredProjects.length === 0) return alert("No projects to export!");
-    const csv = convertToCSV(filteredProjects);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "project_list.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+  // ────────────────────────────────
+  // 2️⃣ Filter Logic
+  // ────────────────────────────────
+  const filteredProjects = projects.filter((pr) => {
+    // Desktop & Mobile Search (Name)
+    const searchName = mobileSearch || filters.name;
+
+    // 1. Text Filters
+    const matchName = searchName ? pr.name.toLowerCase().includes(searchName.toLowerCase()) : true;
+    const matchLocation = filters.location ? pr.location.toLowerCase().includes(filters.location.toLowerCase()) : true;
+    const matchStatus = filters.status ? pr.status === filters.status : true;
+
+    // 2. Owner & Team Filters
+    const matchOwner = filters.owner
+      ? pr.owner?.username?.toLowerCase().includes(filters.owner.toLowerCase())
+      : true;
+
+    const matchTeam = filters.team
+      ? pr.assigned_team?.some(member => member.username.toLowerCase().includes(filters.team.toLowerCase()))
+      : true;
+
+    // 3. ID Range Filter
+    const idNum = Number(pr.id);
+    const matchID = (filters.snMin && filters.snMax)
+      ? idNum >= Number(filters.snMin) && idNum <= Number(filters.snMax)
+      : (filters.snMin)
+        ? idNum === Number(filters.snMin)
+        : true;
+
+    // 4. Date Range Filter
+    const matchDate = (filters.dateMin && filters.dateMax)
+      ? pr.startDate >= filters.dateMin && pr.startDate <= filters.dateMax
+      : (filters.dateMin)
+        ? pr.startDate === filters.dateMin
+        : true;
+
+    // 5. Budget Range Filter
+    const budgetNum = Number(String(pr.budget).replace(/[^0-9.]/g, ""));
+    const matchBudget = (filters.budgetMin && filters.budgetMax)
+      ? budgetNum >= Number(filters.budgetMin) && budgetNum <= Number(filters.budgetMax)
+      : (filters.budgetMin)
+        ? budgetNum === Number(filters.budgetMin)
+        : true;
+
+    return matchName && matchLocation && matchStatus && matchOwner && matchTeam && matchID && matchDate && matchBudget;
+  });
+
+  // ────────────────────────────────
+  // 3️⃣ CRUD Handlers
+  // ────────────────────────────────
+  const openModal = (project, mode) => {
+    setModalMode(mode);
+    if (mode === 'add') {
+      setCurrentProject({
+        project_name: "", location: "", start_date: new Date().toISOString().slice(0, 10),
+        end_date: "", budget: "", status: "Active", owner: null, assigned_team: []
+      });
+    } else {
+      setCurrentProject({
+        ...project,
+        project_name: project.name, start_date: project.startDate, end_date: project.endDate
+      });
+    }
+    setIsModalOpen(true);
   };
 
-const filteredProjects = projects.filter((pr) => {
-  // --- 🔹 Budget filters ---
-  const budgetNum = Number(pr.budget.replace(/[^0-9]/g, "")); // clean numbers only
+  const handleSave = async () => {
+    if (!currentProject) return;
+    const payload = {
+      project_name: currentProject.project_name,
+      location: currentProject.location,
+      start_date: currentProject.start_date,
+      end_date: currentProject.end_date,
+      budget: currentProject.budget,
+      status: currentProject.status,
+      owner_id: currentProject.owner?.id || currentProject.owner,
+      assigned_team_ids: currentProject.assigned_team.map(u => u.id)
+    };
 
-  const budgetSingle = filters.budget
-    ? Number(filters.budget.replace(/[^0-9]/g, ""))
-    : null;
-
-  const budgetMin = filters.budgetMin
-    ? Number(filters.budgetMin.replace(/[^0-9]/g, ""))
-    : null;
-
-  const budgetMax = filters.budgetMax
-    ? Number(filters.budgetMax.replace(/[^0-9]/g, ""))
-    : null;
-
-  let matchBudget = true;
-  if (budgetSingle !== null) {
-    matchBudget = budgetNum === budgetSingle; // single cost match
-  } else if (budgetMin !== null || budgetMax !== null) {
-    const min = budgetMin !== null ? budgetMin : -Infinity;
-    const max = budgetMax !== null ? budgetMax : Infinity;
-    matchBudget = budgetNum >= min && budgetNum <= max; // range match
-  }
-
-  // --- 🔹 Project ID (sn) filters ---
-  const snSingle = filters.sn
-    ? Number(filters.sn.replace(/\D/g, ""))
-    : null;
-  const snMin = filters.snMin
-    ? Number(filters.snMin.replace(/\D/g, ""))
-    : null;
-  const snMax = filters.snMax
-    ? Number(filters.snMax.replace(/\D/g, ""))
-    : null;
-
-  const projectIdNum = Number(pr.id.replace(/\D/g, ""));
-
-  let matchProject = true;
-  if (snSingle !== null) {
-    matchProject = projectIdNum === snSingle;
-  } else if (snMin !== null || snMax !== null) {
-    const min = snMin !== null ? snMin : -Infinity;
-    const max = snMax !== null ? snMax : Infinity;
-    matchProject = projectIdNum >= min && projectIdNum <= max;
-  }
-
-  // --- 🔹 Name filter ---
-  const matchName = filters.name
-    ? pr.name.toLowerCase().includes(filters.name.toLowerCase())
-    : true;
-
-  // --- 🔹 Location filter ---
-  const matchLocation = filters.location
-    ? pr.location.toLowerCase().includes(filters.location.toLowerCase())
-    : true;
-
-  // --- 🔹 Status filter ---
-  const matchStatus = filters.status ? pr.status === filters.status : true;
-
-  // --- 🔹 Start Date filter ---
-  const matchStartDate = filters.startDate
-    ? pr.startDate === filters.startDate
-    : true;
-
-  // --- 🔹 End Date filter ---
-  const matchEndDate = filters.endDate
-    ? pr.endDate === filters.endDate
-    : true;
-
-  // --- ✅ Combine all ---
-  return (
-    matchBudget &&
-    matchProject &&
-    matchName &&
-    matchLocation &&
-    matchStatus &&
-    matchStartDate &&
-    matchEndDate
-  );
-});
-
-
-const handleAddProject = () => {
-  const newPr = {
-    id: `TEMP-${Date.now()}`,
-    name: "",
-    location: "",
-    startDate: "",
-    endDate: "",
-    budget: "",
-    status: "Planned" // or default
+    try {
+      if (modalMode === 'add') {
+        await api.post("/projects/", payload);
+        alert("Project Created!");
+      } else {
+        await api.put(`/projects/${currentProject.id}/`, payload);
+        alert("Project Updated!");
+      }
+      setIsModalOpen(false);
+      fetchData();
+    } catch (error) {
+      console.error("Save failed", error);
+      alert("Failed to save project.");
+    }
   };
-  setProjects([...projects, newPr]);
-  setEditingRowId(newPr.id); // auto-edit
-  setOriginalItem(newPr);
-};
 
-const handleFieldChange = (id, field, value) => {
-  setProjects(projects.map(pr =>
-    pr.id === id ? { ...pr, [field]: value } : pr
-  ));
-};
-
-const handleDelete = (id) => {
-  const itemToDelete = projects.find((pr) => pr.id === id);
-  setOriginalItem(itemToDelete);
-  setPendingAction({ type: "delete", id });
-  setShowConfirm(true);
-};
-
-const handleSaveRow = (id) => {
-  const currentItem = projects.find((pr) => pr.id === id);
-  if (JSON.stringify(currentItem) === JSON.stringify(originalItem)) {
-    // No changes → auto-save
-    setEditingRowId(null);
-    setOriginalItem(null);
-    return;
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this project?")) return;
+    try {
+      await api.delete(`/projects/${id}/`);
+      setProjects(prev => prev.filter(p => p.id !== id));
+    } catch (error) { alert("Could not delete project"); }
   }
-  setPendingAction({ type: "save", id });
-  setShowConfirm(true);
-};
 
-const confirmAction = () => {
-  if (pendingAction.type === "save") {
-    setEditingRowId(null);
-    setOriginalItem(null);
-  } else if (pendingAction.type === "delete") {
-    setProjects((prev) => prev.filter((pr) => pr.id !== pendingAction.id));
-  }
-  setPendingAction(null);
-  setShowConfirm(false);
-};
+  const addTeamMember = (userId) => {
+    const userToAdd = allUsers.find(u => Number(u.id) === Number(userId));
+    if (userToAdd && !currentProject.assigned_team.find(m => m.id === userToAdd.id)) {
+      setCurrentProject(prev => ({ ...prev, assigned_team: [...prev.assigned_team, userToAdd] }));
+    }
+  };
 
+  const removeTeamMember = (userId) => {
+    setCurrentProject(prev => ({ ...prev, assigned_team: prev.assigned_team.filter(m => m.id !== userId) }));
+  };
 
-
+  const formatCurrency = (val) => val ? `₦${Number(val).toLocaleString()}` : "₦0";
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Completed": return "bg-green-500 text-white";
+      case "Active": return "bg-blue-500 text-white";
+      case "Cancelled": return "bg-red-500 text-white";
+      default: return "bg-gray-400 text-white";
+    }
+  };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-sm">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-       {/* Add New Operation */}
-        <button
-          onClick={handleAddProject}
-          className="bg-blue-600 text-white text-sm px-2 py-2 rounded-lg hover:bg-blue-700"
-        >
-          + Add Project
-        </button>
+    <div className="p-0 sm:p-6 bg-white sm:bg-transparent rounded-none sm:rounded-xl shadow-none sm:shadow-sm min-h-screen">
 
-        {/* Export Button */}
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-1 border px-1 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-        >
-          <Download className="w-4 h-4" />
-          {/* Export */}
-        </button>
+      {/* 📱 MOBILE: Sticky Filter Bar */}
+      <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 shadow-sm mb-4">
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search projects..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm transition duration-150 ease-in-out"
+              value={mobileSearch}
+              onChange={(e) => setMobileSearch(e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={() => setShowMobileFilters(true)}
+            className={`relative p-2.5 rounded-xl border transition-colors ${hasActiveFilters ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+          >
+            <Filter className="w-5 h-5" />
+            {hasActiveFilters && (
+              <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 🖥️ DESKTOP: Header */}
+      <div className="hidden lg:flex flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-xl font-bold text-gray-800">Projects Directory</h2>
+        <div className="flex gap-2">
+          <button className="flex items-center gap-1 border px-3 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm">
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button onClick={() => openModal(null, 'add')} className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+            <Plus className="w-4 h-4" /> New Project
+          </button>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-left text-gray-600 font-medium">
-              <th className="px-2 py-2">
-                <button
-                  onClick={() => setSnModalOpen(true)}
-                  className={`hover:bg-gray-300 w-10 rounded-lg px-1 py-1 ${
-                    snModalOpen ? "border-2 border-blue-500" : ""
-                  }`}
-                >
-                  S/N
-                </button>
-              </th>
-               <th className="px-1 py-1">
-                <input
-                  type="text"
-                  placeholder="Project Name"
-                  value={filters.name}
-                  onChange={(e) => {
-                    // remove leading/trailing spaces & any characters you don’t want
-                    const cleanValue = e.target.value.replace(/[^a-zA-Z0-9\s]/g, "").trimStart();
-                    setFilters({ ...filters, name: cleanValue });
-                  }}
-                  className="px-1 py-1 w-auto rounded border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </th>
-
-              <th className="px-1 py-1">
-                <input
-                  type="text"
-                  placeholder="Location"
-                  value={filters.location}
-                  onChange={(e) => {
-                    // remove leading/trailing spaces & any characters you don’t want
-                    const cleanValue = e.target.value.replace(/[^a-zA-Z0-9\s]/g, "").trimStart();
-                    setFilters({ ...filters, location: cleanValue });
-                  }}
-                  className="px-1 py-1 w-24 rounded border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </th>
-
-              <th className="px-2 py-2">
-                <select
-                  value={filters.startDate || ""}
-                  onChange={(e) =>
-                    setFilters({
-                      ...filters,
-                      startDate: e.target.value,
-                    })
-                  }
-                  className=" border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                >
-                  <option value="">Start Date</option>
-                  {[...new Map(
-                    projects.map((pr) => [pr.startDate, pr.startDate])
-                  ).entries()].map(([value], idx) => (
-                    <option key={idx} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
+      <div className="overflow-x-auto rounded-none sm:rounded-lg border-t sm:border border-gray-100">
+        <div className="min-w-[1200px] sm:min-w-full">
+          <table className="w-full text-sm text-left hidden sm:table">
+            <thead className="bg-gray-50 text-gray-600 font-medium uppercase text-xs">
+              <tr>
+                <th className="px-4 py-3 w-20">
+                  <button onClick={() => setSnModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-2 py-1 text-left flex justify-between ${snModalOpen || filters.snMin ? "bg-blue-50 border-blue-200" : ""}`}>ID</button>
+                </th>
+                <th className="px-4 py-3">
+                  <input placeholder="Project Name" className="bg-transparent w-full outline-none" value={filters.name} onChange={e => setFilters({ ...filters, name: e.target.value })} />
+                </th>
+                <th className="px-4 py-3 w-32">
+                  <input placeholder="Location" className="bg-transparent w-full outline-none" value={filters.location} onChange={e => setFilters({ ...filters, location: e.target.value })} />
+                </th>
+                <th className="px-4 py-3 w-28">
+                  <button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-2 py-1 text-left flex justify-between ${dateModalOpen || filters.dateMin ? "bg-blue-50 border-blue-200" : ""}`}>Date</button>
+                </th>
+                <th className="px-4 py-3 w-32">
+                  <button onClick={() => setBudgetModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-2 py-1 text-left flex justify-between ${budgetModalOpen || filters.budgetMin ? "bg-blue-50 border-blue-200" : ""}`}>Budget</button>
                 </th>
 
-              <th className="px-2 py-2">
-                <select
-                  value={filters.endDate || ""}
-                  onChange={(e) =>
-                    setFilters({
-                      ...filters,
-                      endDate: e.target.value,
-                    })
-                  }
-                  className="border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                >
-                  <option value="">End Date</option>
-                  {[...new Map(
-                    projects.map((pr) => [pr.endDate, pr.endDate])
-                  ).entries()].map(([value], idx) => (
-                    <option key={idx} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </th>
- 
-              <th className="px-1 py-1">
-                <button
-                  onClick={() => setBudgetModalOpen(true)}
-                  className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${
-                    budgetModalOpen ? "border-2 border-blue-500" : ""
-                  }`}
-                >
-                  Budget
-                </button>
-              </th>
-              <th className="px-2 py-2">
-                <select
-                  value={filters.status}
-                  onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                  className="border rounded-lg px-1 py-1 text-xs"
-                >
-                  <option value="">All Status</option>
-                  <option value="On Schedule">On Schedule</option>
-                  <option value="Behind Schedule">Behind Schedule</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </th>
-              <th className="px-2 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-          {[...filteredProjects].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((pr) => (
-            <tr key={pr.id} className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm">
-              
-            {/* ID */}
-              <td className="px-2 py-2">
-                {editingRowId === pr.id ? (
-                  <input
-                    value={pr.id}
-                    onChange={(e) => handleFieldChange(pr.id, "name", e.target.value)}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                  />
-                ) : (
-                  pr.id
-                )}
-              </td>
-              
-              {/* name */}
-              <td className="px-2 py-2">
-                {editingRowId === pr.id ? (
-                  <input
-                    value={pr.name}
-                    onChange={(e) => handleFieldChange(pr.id, "name", e.target.value)}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                  />
-                ) : (
-                  pr.name
-                )}
-              </td>
+                <th className="px-4 py-3 w-32">
+                  <input placeholder="Owner" className="bg-transparent w-full outline-none" value={filters.owner} onChange={e => setFilters({ ...filters, owner: e.target.value })} />
+                </th>
 
-              {/* location */}
-              <td className="px-2 py-2">
-                {editingRowId === pr.id ? (
-                  <input
-                    value={pr.location}
-                    onChange={(e) => handleFieldChange(pr.id, "location", e.target.value)}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                  />
-                ) : (
-                  pr.location
-                )}
-              </td>
+                <th className="px-4 py-3 w-32">
+                  <input placeholder="Team" className="bg-transparent w-full outline-none" value={filters.team} onChange={e => setFilters({ ...filters, team: e.target.value })} />
+                </th>
 
-              {/* startDate */}
-              <td className="px-2 py-2">
-                {editingRowId === pr.id ? (
-                  <input
-                    type="date"
-                    value={pr.startDate}
-                    onChange={(e) =>
-                      handleFieldChange(pr.id, "startDate", e.target.value)
-                    }
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                  />
-                ) : (
-                  pr.startDate
-                )}
-              </td>
-
-              {/* endDate */}
-              <td className="px-2 py-2">
-                {editingRowId === pr.id ? (
-                  <input
-                    type="date"
-                    value={pr.endDate}
-                    onChange={(e) =>
-                      handleFieldChange(pr.id, "endDate", e.target.value)
-                    }
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                  />
-                ) : (
-                  pr.endDate
-                )}
-              </td>
-
-              {/* budget */}
-              <td className="px-2 py-2">
-                {editingRowId === pr.id ? (
-                  <input
-                    type="number"
-                    value={pr.budget}
-                    onChange={(e) =>
-                      handleFieldChange(pr.id, "budget", e.target.value)
-                    }
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                  />
-                ) : (
-                  pr.budget
-                )}
-              </td>
-
-              {/* status */}
-              <td className="px-2 py-2">
-                {editingRowId === pr.id ? (
-                  <select
-                    value={pr.status}
-                    onChange={(e) =>
-                      handleFieldChange(pr.id, "status", e.target.value)
-                    }
-                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                  >
-                    <option value="Planned">Planned</option>
-                    <option value="Ongoing">Ongoing</option>
-                    <option value="Completed">Completed</option>
+                <th className="px-4 py-3 w-32">
+                  <select className="bg-transparent w-full outline-none" value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}>
+                    <option value="">Status</option>
+                    <option>Active</option>
+                    <option>Completed</option>
+                    <option>Cancelled</option>
                   </select>
-                ) : (
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                      pr.status
-                    )}`}
-                  >
-                    {pr.status}
-                  </span>
-                )}
-              </td>
+                </th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr><td colSpan={9} className="p-6 text-center text-gray-500">Loading...</td></tr>
+              ) : filteredProjects.length === 0 ? (
+                <tr><td colSpan={9} className="p-6 text-center text-gray-500">No projects found.</td></tr>
+              ) : (
+                filteredProjects.slice(0, visibleCount).map((pr) => (
+                  <tr key={pr.id} className="hover:bg-blue-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-500">#{pr.id}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{pr.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{pr.location}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">
+                      <div>{pr.startDate}</div>
+                      <div className="text-gray-400">to {pr.endDate}</div>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-gray-700">{formatCurrency(pr.budget)}</td>
+                    <td className="px-4 py-3 text-xs">{pr.owner?.username || "-"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex -space-x-2">
+                        {pr.assigned_team.slice(0, 3).map(m => (
+                          <div key={m.id} className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600 border border-white" title={m.username}>
+                            {m.username.charAt(0).toUpperCase()}
+                          </div>
+                        ))}
+                        {pr.assigned_team.length > 3 && <div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[9px] border border-white">+{pr.assigned_team.length - 3}</div>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(pr.status)}`}>{pr.status}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right flex justify-end gap-2">
+                      <button onClick={() => openModal(pr, 'view')} className="text-gray-400 hover:text-blue-600"><Eye className="w-4 h-4" /></button>
+                      <button onClick={() => openModal(pr, 'edit')} className="text-gray-400 hover:text-green-600"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(pr.id)} className="text-gray-400 hover:text-red-600"><Trash className="w-4 h-4" /></button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
 
-              {/* Edit / Save button */}
-              <td className="px-2 py-2 flex gap-1">
-                {editingRowId === pr.id ? (
-                  <>
-                    <button
-                      onClick={() => handleSaveRow(pr.id)}
-                      className="bg-green-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-600"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => handleDelete(pr.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600"
-                    >
-                      <Trash className="w-3 h-3" />
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setEditingRowId(pr.id);
-                      setOriginalItem(pr);
-                    }}
-                    className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
-                  >
-                    Edit
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
+          {/* 📱 MOBILE LIST VIEW */}
+          <div className="block sm:hidden divide-y divide-gray-100">
+            {filteredProjects.slice(0, visibleCount).map((pr) => (
+              <div key={pr.id} onClick={() => openModal(pr, 'view')} className="p-4 active:bg-gray-50 cursor-pointer">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">{pr.name}</h3>
+                    <p className="text-xs text-gray-500">{pr.location}</p>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${getStatusColor(pr.status)}`}>{pr.status}</span>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs font-mono font-medium text-gray-700">{formatCurrency(pr.budget)}</span>
+                  <div className="flex gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); openModal(pr, 'edit'); }} className="p-1.5 bg-gray-100 rounded text-blue-600"><Edit className="w-3 h-3" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDelete(pr.id); }} className="p-1.5 bg-gray-100 rounded text-red-600"><Trash className="w-3 h-3" /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filteredProjects.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">No projects found.</div>}
+          </div>
 
-          {/* Empty state */}
-          {[...filteredProjects].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).length === 0 && (
-            <tr>
-              <td colSpan={8} className="px-2 py-6 text-center text-gray-500">
-                No projects found
-              </td>
-            </tr>
-          )}
-        </tbody>
-        <tfoot>
-          <tr className="bg-gray-100 font-semibold text-xs sm:text-sm">
-            {visibleCount < filteredProjects.length && (
-              <td colSpan={8} className="px-2 py-4 text-center">
-                <button
-                  onClick={() => setVisibleCount((prev) => prev + 10)}
-                  className="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs hover:bg-gray-700 transition"
-                >
-                  View More
-                </button>
-              </td>
-            )}
-          </tr>
-        </tfoot>
-      </table>
+        </div>
       </div>
 
-      {/* Project S/N Modal */}
+      {/* 📱 MOBILE FILTER DRAWER */}
+      {showMobileFilters && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50 backdrop-blur-sm lg:hidden animate-in fade-in">
+          <div className="bg-white w-full rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+              <button onClick={() => setShowMobileFilters(false)} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Status */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-3 block">Status</label>
+                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                  {["", "Active", "Completed", "Cancelled"].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => setFilters({ ...filters, status: status })}
+                      className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filters.status === status
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-600 border-gray-200"
+                        }`}
+                    >
+                      {status || "All"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Budget Range */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Budget Range</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="number" placeholder="Min" value={filters.budgetMin} onChange={(e) => setFilters({ ...filters, budgetMin: e.target.value })} className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
+                  <input type="number" placeholder="Max" value={filters.budgetMax} onChange={(e) => setFilters({ ...filters, budgetMax: e.target.value })} className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
+                </div>
+              </div>
+
+              {/* Date Range */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Start Date Range</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="date" value={filters.dateMin} onChange={(e) => setFilters({ ...filters, dateMin: e.target.value })} className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500" />
+                  <input type="date" value={filters.dateMax} onChange={(e) => setFilters({ ...filters, dateMax: e.target.value })} className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500" />
+                </div>
+              </div>
+
+              {/* Specific Fields */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <input type="text" placeholder="Location" value={filters.location} onChange={(e) => setFilters({ ...filters, location: e.target.value })} className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500" />
+                </div>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <input type="text" placeholder="Owner Name" value={filters.owner} onChange={(e) => setFilters({ ...filters, owner: e.target.value })} className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500" />
+                </div>
+                {/* ✅ NEW: Team Member Input */}
+                <div className="relative">
+                  <Users className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <input type="text" placeholder="Team Member" value={filters.team} onChange={(e) => setFilters({ ...filters, team: e.target.value })} className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500" />
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 mt-8 pt-4 border-t border-gray-100">
+              <button
+                onClick={() => setFilters({ name: "", location: "", status: "", owner: "", team: "", snMin: "", snMax: "", dateMin: "", dateMax: "", budgetMin: "", budgetMax: "" })}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl"
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setShowMobileFilters(false)}
+                className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200"
+              >
+                Show Results
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────── */}
+      {/* DESKTOP FILTER MODALS (Unchanged)      */}
+      {/* ────────────────────────────────────── */}
+
       {snModalOpen && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-5">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSnModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-lg p-5 w-80" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-gray-700 mb-3">Filter ID</h3>
             <div className="space-y-3">
-              {/* Single Project ID */}
-              <div>
-                <select
-                  value={filters.snMin && !filters.snMax ? filters.snMin : ""}
-                  onChange={(e) => {
-                    setFilters({
-                      ...filters,
-                      snMin: e.target.value,
-                      snMax: "", // reset max if single selected
-                    });
-                    setSnRange({ min: "", max: "" }); // reset range
-                  }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                >
-                  <option value="">Select Project ID</option>
-                  {projects.map((pr) => (
-                    <option key={pr.id} value={pr.id}>
-                      {pr.id}
-                    </option>
-                  ))}
-                </select>
+              <select className="w-full border rounded p-2" onChange={e => { setFilters({ ...filters, snMin: e.target.value, snMax: "" }); setSnModalOpen(false); }}>
+                <option value="">Select Specific ID</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.id}</option>)}
+              </select>
+              <div className="text-center text-xs text-gray-400">- OR -</div>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" placeholder="Min" className="border rounded p-2" value={snRange.min} onChange={e => setSnRange({ ...snRange, min: e.target.value })} />
+                <input type="number" placeholder="Max" className="border rounded p-2" value={snRange.max} onChange={e => setSnRange({ ...snRange, max: e.target.value })} />
               </div>
-
-              <div className="text-center text-gray-500 text-sm">— OR —</div>
-
-              {/* Range */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <select
-                    value={snRange.min}
-                    onChange={(e) =>
-                      setSnRange({
-                        ...snRange,
-                        min: e.target.value,
-                      })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                  >
-                    <option value="">Min</option>
-                    {projects.map((pr) => (
-                      <option key={pr.id} value={pr.id}>
-                        {pr.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <select
-                    value={snRange.max}
-                    onChange={(e) =>
-                      setSnRange({
-                        ...snRange,
-                        max: e.target.value,
-                      })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                  >
-                    <option value="">Max</option>
-                    {projects.map((pr) => (
-                      <option key={pr.id} value={pr.id}>
-                        {pr.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button onClick={() => setSnModalOpen(false)} className="text-gray-500 text-sm">Close</button>
+                <button onClick={() => { setFilters({ ...filters, snMin: snRange.min, snMax: snRange.max }); setSnModalOpen(false); }} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Apply</button>
               </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex justify-end gap-3 mt-4 pt-4 border-t">
-              <button
-                onClick={() => setSnModalOpen(false)}
-                className="px-2 py-2 rounded-lg bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (snRange.min && snRange.max) {
-                    // Range selected
-                    setFilters({
-                      ...filters,
-                      sn: "",
-                      snMin: snRange.min,
-                      snMax: snRange.max,
-                    });
-                  } else if (filters.snMin && !filters.snMax) {
-                    // Single selected from dropdown
-                    setFilters({
-                      ...filters,
-                      sn: filters.snMin,
-                      snMin: "",
-                      snMax: "",
-                    });
-                  } else {
-                    // Clear
-                    setFilters({
-                      ...filters,
-                      sn: "",
-                      snMin: "",
-                      snMax: "",
-                    });
-                  }
-                  setSnModalOpen(false);
-                }}
-                className="px-2 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-              >
-                Apply
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Budget Modal */}
+      {/* ... (DateModal and BudgetModal remain same as desktop logic) ... */}
+      {dateModalOpen && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDateModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-lg p-5 w-80" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-gray-700 mb-3">Filter Date</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" className="border rounded p-2 text-xs" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} />
+                <input type="date" className="border rounded p-2 text-xs" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button onClick={() => { setFilters({ ...filters, dateMin: "", dateMax: "" }); setDateModalOpen(false); }} className="text-red-500 text-sm">Clear</button>
+                <button onClick={() => { setFilters({ ...filters, dateMin: dateRange.start, dateMax: dateRange.end }); setDateModalOpen(false); }} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Apply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {budgetModalOpen && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-5">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setBudgetModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-lg p-5 w-80" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-gray-700 mb-3">Filter Budget</h3>
             <div className="space-y-3">
-              {/* Single Budget */}
-              <div>
-                <select
-                  value={filters.budgetMin && !filters.budgetMax ? filters.budgetMin : ""}
-                  onChange={(e) => {
-                    setFilters({
-                      ...filters,
-                      budgetMin: e.target.value,
-                      budgetMax: "", // reset max if single selected
-                    });
-                    setBudgetRange({ min: "", max: "" }); // reset range
-                  }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                >
-                  <option value="">Select Budget</option>
-                  {[...new Map(
-                    projects.map((pr) => [
-                      pr.budget.replace(/[^0-9]/g, ""), // key (number only)
-                      pr.budget // value to display
-                    ])
-                  ).entries()].map(([value, display], idx) => (
-                    <option key={idx} value={value}>
-                      {display}
-                    </option>
-                  ))}
-                </select>
-
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" placeholder="Min" className="border rounded p-2" value={budgetRange.min} onChange={e => setBudgetRange({ ...budgetRange, min: e.target.value })} />
+                <input type="number" placeholder="Max" className="border rounded p-2" value={budgetRange.max} onChange={e => setBudgetRange({ ...budgetRange, max: e.target.value })} />
               </div>
-
-              <div className="text-center text-gray-500 text-sm">— OR —</div>
-
-              {/* Range */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <select
-                    value={budgetRange.min}
-                    onChange={(e) =>
-                      setBudgetRange({
-                        ...budgetRange,
-                        min: e.target.value,
-                      })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                  >
-                    <option value="">Min</option>
-                    {[...new Map(
-                      projects.map((pr) => [
-                        pr.budget.replace(/[^0-9]/g, ""), // key
-                        pr.budget // display
-                      ])
-                    ).entries()].map(([value, display], idx) => (
-                      <option key={idx} value={value}>
-                        {display}
-                      </option>
-                    ))}
-                  </select>
-
-                </div>
-                <div>
-                  <select
-                    value={budgetRange.max}
-                    onChange={(e) =>
-                      setBudgetRange({
-                        ...budgetRange,
-                        max: e.target.value,
-                      })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                  >
-                    <option value="">Max</option>
-                    {[...new Map(
-                      projects.map((pr) => [
-                        pr.budget.replace(/[^0-9]/g, ""), // key
-                        pr.budget // display
-                      ])
-                    ).entries()].map(([value, display], idx) => (
-                      <option key={idx} value={value}>
-                        {display}
-                      </option>
-                    ))}
-                  </select>
-
-                </div>
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button onClick={() => setBudgetModalOpen(false)} className="text-gray-500 text-sm">Close</button>
+                <button onClick={() => { setFilters({ ...filters, budgetMin: budgetRange.min, budgetMax: budgetRange.max }); setBudgetModalOpen(false); }} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Apply</button>
               </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex justify-end gap-3 mt-4 pt-4 border-t">
-              <button
-                onClick={() => setBudgetModalOpen(false)}
-                className="px-2 py-2 rounded-lg bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (budgetRange.min && budgetRange.max) {
-                    // Range selected
-                    setFilters({
-                      ...filters,
-                      budget: "",
-                      budgetMin: budgetRange.min,
-                      budgetMax: budgetRange.max,
-                    });
-                  } else if (filters.budgetMin && !filters.budgetMax) {
-                    // Single budget selected
-                    setFilters({
-                      ...filters,
-                      budget: filters.budgetMin,
-                      budgetMin: "",
-                      budgetMax: "",
-                    });
-                  } else {
-                    // Nothing selected, clear
-                    setFilters({
-                      ...filters,
-                      budget: "",
-                      budgetMin: "",
-                      budgetMax: "",
-                    });
-                  }
-                  setBudgetModalOpen(false);
-                }}
-                className="px-2 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-              >
-                Apply
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Confirmation Modal */}
-      {showConfirm && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-80 text-center">
-            <p className="text-gray-800 mb-4">
-              {pendingAction.type === "save"
-                ? "Save changes to this row?"
-                : "Are you sure you want to delete this row?"}
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={confirmAction}
-                className="bg-green-500 text-white px-4 py-1 rounded-lg hover:bg-green-600"
-              >
-                Confirm
-              </button>
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="bg-gray-300 text-gray-800 px-4 py-1 rounded-lg hover:bg-gray-400"
-              >
-                Cancel
-              </button>
+      {/* ────────────────────────────────────── */}
+      {/* ADD / EDIT / VIEW MODAL                */}
+      {/* ────────────────────────────────────── */}
+      {isModalOpen && currentProject && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+
+            <div className="px-6 py-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+              <h3 className="text-xl font-bold text-gray-800">
+                {modalMode === 'add' ? "New Project" : modalMode === 'edit' ? "Edit Project" : "Project Details"}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5 text-gray-500" /></button>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* LEFT: Info */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-gray-400 uppercase border-b pb-1">General Info</h4>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Project Name</label>
+                  <input disabled={modalMode === 'view'} value={currentProject.project_name} onChange={e => setCurrentProject({ ...currentProject, project_name: e.target.value })} className="w-full border border-gray-300 rounded-lg p-2 mt-1 disabled:bg-gray-100" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Location</label>
+                  <input disabled={modalMode === 'view'} value={currentProject.location} onChange={e => setCurrentProject({ ...currentProject, location: e.target.value })} className="w-full border border-gray-300 rounded-lg p-2 mt-1 disabled:bg-gray-100" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="block text-xs text-gray-500">Start Date</label><input type="date" disabled={modalMode === 'view'} value={currentProject.start_date} onChange={e => setCurrentProject({ ...currentProject, start_date: e.target.value })} className="w-full border rounded-lg p-2 mt-1 disabled:bg-gray-100 text-sm" /></div>
+                  <div><label className="block text-xs text-gray-500">End Date</label><input type="date" disabled={modalMode === 'view'} value={currentProject.end_date} onChange={e => setCurrentProject({ ...currentProject, end_date: e.target.value })} className="w-full border rounded-lg p-2 mt-1 disabled:bg-gray-100 text-sm" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="block text-sm font-medium text-gray-700">Budget</label><input type="number" disabled={modalMode === 'view'} value={currentProject.budget} onChange={e => setCurrentProject({ ...currentProject, budget: e.target.value })} className="w-full border border-gray-300 rounded-lg p-2 mt-1 disabled:bg-gray-100" /></div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    <select disabled={modalMode === 'view'} value={currentProject.status} onChange={e => setCurrentProject({ ...currentProject, status: e.target.value })} className="w-full border border-gray-300 rounded-lg p-2 mt-1 disabled:bg-gray-100">
+                      <option>Active</option><option>Completed</option><option>Cancelled</option><option>Delayed</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT: Team */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase border-b pb-1 flex items-center gap-2"><User className="w-3 h-3" /> Project Owner</h4>
+                  <div className="mt-3">
+                    {modalMode === 'view' ? <div className="p-3 bg-gray-50 rounded-lg border text-sm text-gray-700">{currentProject.owner?.username || "No Owner Assigned"}</div> : (
+                      <select value={currentProject.owner?.id || currentProject.owner || ""} onChange={e => setCurrentProject({ ...currentProject, owner: allUsers.find(u => String(u.id) === e.target.value) })} className="w-full border border-gray-300 rounded-lg p-2 text-sm">
+                        <option value="">Select Owner</option>
+                        {allUsers.map(user => <option key={user.id} value={user.id}>{user.username} ({user.email})</option>)}
+                      </select>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase border-b pb-1 flex items-center gap-2"><Users className="w-3 h-3" /> Assigned Team</h4>
+                  <div className="flex flex-wrap gap-2 mt-3 mb-3">
+                    {currentProject.assigned_team.length === 0 && <span className="text-sm text-gray-400 italic">No team members assigned.</span>}
+                    {currentProject.assigned_team.map(member => (
+                      <div key={member.id} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-100">
+                        {member.username}
+                        {modalMode !== 'view' && <button onClick={() => removeTeamMember(member.id)} className="hover:text-red-600 ml-1"><X className="w-3 h-3" /></button>}
+                      </div>
+                    ))}
+                  </div>
+                  {modalMode !== 'view' && (
+                    <div className="flex gap-2">
+                      <select id="teamSelect" className="flex-1 border border-gray-300 rounded-lg p-2 text-xs">
+                        <option value="">Select Member...</option>
+                        {allUsers.map(user => <option key={user.id} value={user.id}>{user.username}</option>)}
+                      </select>
+                      <button type="button" onClick={() => { const select = document.getElementById("teamSelect"); if (select.value) { addTeamMember(select.value); select.value = ""; } }} className="bg-gray-900 text-white px-3 py-2 rounded-lg text-xs hover:bg-gray-800">Add</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3 sticky bottom-0">
+              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm">Close</button>
+              {modalMode !== 'view' && <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm shadow-sm">{modalMode === 'add' ? 'Create Project' : 'Save Changes'}</button>}
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }

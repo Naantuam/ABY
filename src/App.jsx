@@ -23,6 +23,7 @@ import SafetyDashboard from "./Pages/Safety/SafetyDashboard";
 
 import ProductionLayout from "./Pages/Production/ProductionLayout";
 import ProductionDashboard from "./Pages/Production/ProductionDashboard";
+import ActivateAccount from './UserDetail/ActivateAccount';
 
 // import ProtectedRoute from "./ProtectedRoute";
 
@@ -33,6 +34,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/mfa" element={<MFA />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
 
         {/* Admin Panel */}
         <Route path="/admin" element={<AdminLayout />}>

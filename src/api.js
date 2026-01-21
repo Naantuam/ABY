@@ -1,23 +1,21 @@
 import axios from "axios";
 
 // 1️⃣ DEFINE BASE URL
-// We check for the environment variable first.
-// If it's just the domain (e.g. ...onrender.com), we append '/api' to it.
 let BASE_URL = import.meta.env.VITE_API_URL || "https://abs-software-v2.onrender.com";
 
-// Ensure it doesn't end with a slash to avoid double slashes later
+// Ensure clean URL (no trailing slash)
 if (BASE_URL.endsWith("/")) {
   BASE_URL = BASE_URL.slice(0, -1);
 }
 
-// Ensure it ends with /api if your endpoints expect it (e.g. /api/users/)
-// Based on your previous code which used /api prefix:
+// Ensure it ends with /api
 if (!BASE_URL.endsWith("/api")) {
   BASE_URL += "/api";
 }
 
 console.log("📡 API Base URL set to:", BASE_URL);
 
+// Create the axios instance
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -47,40 +45,54 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Check if error is 401 (Unauthorized) and we haven't retried yet
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    // Prevent infinite loops: If the error is 401 AND we haven't retried yet
+    // AND the URL that failed wasn't the refresh endpoint itself
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes("/token/refresh/") 
+    ) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem("refresh_token");
-        if (!refreshToken) throw new Error("No refresh token");
 
-        console.log("🔄 Refreshing token...");
-        
-        // ⚠️ IMPORTANT: Verify this endpoint with your partner.
-        // Common Django SimpleJWT path: /token/refresh/
-        // Your previous code had: /users/token/refresh/ or /auth/refresh/
-        // I will use /users/token/refresh/ based on your login code context.
+        // If no refresh token exists, we can't refresh. Go to login.
+        if (!refreshToken) {
+            console.warn("⚠️ No refresh token found. Redirecting to login.");
+            throw new Error("No refresh token");
+        }
+
+        console.log("🔄 Access token expired. Attempting refresh...");
+
+        // 🚀 THIS IS THE KEY PART YOU ASKED FOR
+        // We use a clean 'axios' call (not 'api') to avoid circular interceptors
         const refreshResponse = await axios.post(`${BASE_URL}/users/token/refresh/`, {
           refresh: refreshToken,
         });
 
+        // 1. Get the new token from backend
         const newAccessToken = refreshResponse.data.access;
 
-        // Save new token
+        // 2. Save it to local storage
         localStorage.setItem("access_token", newAccessToken);
-        
-        // Attach new token to the RETRY request
+        console.log("✅ Token refreshed successfully!");
+
+        // 3. Update the header of the failed request with the NEW token
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        
+
+        // 4. Retry the original request
         return api(originalRequest);
 
       } catch (refreshError) {
-        console.error("❌ Session expired:", refreshError);
+        console.error("❌ Session expired or Refresh Token invalid:", refreshError);
         
-        // Logout cleanly
-        localStorage.clear();
-        window.location.href = "/";
+        // If Refresh fails, the user MUST log in again
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = ""; // Force redirect
+        
         return Promise.reject(refreshError);
       }
     }

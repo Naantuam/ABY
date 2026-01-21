@@ -14,49 +14,68 @@ export default function UserPanel() {
   const [activeTab, setActiveTab] = useState(0);
 
   const tabs = [
-    { name: "User Categories", icon: UserIcon, component: <UserCategories /> },
+    { name: "Roles", icon: UserIcon, component: <UserCategories /> },
     { name: "Employees", icon: UsersIcon, component: <Employees /> },
-    {
-      name: "Roles & Permission",
-      icon: ShieldCheckIcon,
-      component: <RolesAndPermissions />,
-    },
+    { name: "Permissions", icon: ShieldCheckIcon, component: <RolesAndPermissions /> },
   ];
 
   return (
-    <div className="p-2 bg-gray-50">
-      {/* Tabs */}
-      <div className="flex justify-around border-b pb-2 mb-4 overflow-x-auto">
-        {tabs.map((tab, i) => (
-          <button
-            key={i}
-            onClick={() => setActiveTab(i)}
-            className={`flex items-center text-sm md:text-base gap-1.5 px-2 py-2 rounded-t-lg transition ${
-              activeTab === i
-                ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
-                : "text-gray-600 hover:text-blue-500"
-            }`}
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.name}
-          </button>
-        ))}
+    <div className="bg-gray-50 min-h-screen flex flex-col font-sans">
+      
+      {/* 📌 Sticky Tabs Header */}
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto w-full">
+          {/* MOBILE: grid-cols-3 (Forces all 3 to fit on screen)
+             DESKTOP: flex (Natural spacing)
+          */}
+          <div className="grid grid-cols-3 md:flex md:justify-around md:gap-8 px-2 md:px-6">
+            {tabs.map((tab, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveTab(i)}
+                className={`
+                  relative flex flex-col md:flex-row items-center justify-center md:justify-start 
+                  gap-1 md:gap-2 py-3 px-1 
+                  text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wide transition-all
+                  ${
+                    activeTab === i
+                      ? "text-blue-600"
+                      : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                  }
+                `}
+              >
+                <tab.icon className={`h-5 w-5 ${activeTab === i ? "text-blue-600" : "text-gray-400"}`} />
+                <span>{tab.name}</span>
+                
+                {/* Active Indicator (Animated Line) */}
+                {activeTab === i && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full mx-2 md:mx-0"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Sliding Content */}
-      <div className="relative overflow-hidden">
+      {/* 🔄 Sliding Content Area */}
+      <div className="flex-1 w-full max-w-7xl mx-auto p-2 sm:p-6 overflow-x-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -50, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="w-full"
           >
             {tabs[activeTab].component}
           </motion.div>
         </AnimatePresence>
       </div>
+
     </div>
   );
 }
