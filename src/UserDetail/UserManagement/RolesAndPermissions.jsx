@@ -26,18 +26,22 @@ export default function RolesAndPermissions() {
         // Fetch roles and all app permissions in parallel
         const [rolesRes, ...permsResList] = await Promise.all([
           api.get("/users/roles/"),
-          ...apps.map(app => api.get(`/users/permissions/${app}/`).catch(e => ({ data: [] }))) // Catch specific app errors
+          ...apps.map(app => api.get(`/users/permissions/${app}/`).catch(e => ({ data: [] })))
         ]);
 
         const rolesDataRaw = Array.isArray(rolesRes.data) ? rolesRes.data : (rolesRes.data.results || []);
+
+        // Map keys to IDs for the frontend
+        // Backend returns: [{"key":0,"label":"Project Manager"}, ...]
+        // We assume 'key' matches the ID used for fetching details/updates, 
+        // OR we'll resolve the real ID later.
         const rolesData = rolesDataRaw.map(r => ({
           ...r,
-          id: r.key ?? r.id,
-          name: r.label ?? r.name,
+          id: r.id ?? r.key, // Use Key as the local ID (0, 1, 2...)
+          name: r.name ?? r.label,
           permissions: r.permissions || []
         }));
 
-        // Flatten all permission arrays
         const permsData = permsResList.flatMap(res =>
           Array.isArray(res.data) ? res.data : (res.data.results || [])
         );
@@ -84,18 +88,61 @@ export default function RolesAndPermissions() {
   };
 
   const handleSave = async () => {
-    if (!selectedRoleId) return;
+    console.log("💾 Save button clicked. Selected Role ID (Key):", selectedRoleId);
+
+    if (selectedRoleId === null || selectedRoleId === undefined) {
+      console.warn("⚠️ No role selected. Aborting save.");
+      alert("Please select a role first.");
+      return;
+    }
+
     setSaving(true);
     try {
       const role = roles.find(r => r.id === selectedRoleId);
+      console.log("🔍 Found role object:", role);
+
+      if (!role) {
+        throw new Error(`Role with ID ${selectedRoleId} not found in local state.`);
+      }
+
+      let targetId = selectedRoleId;
+
+      // 🕵️ JIT Resolution: Try to find the REAL Database ID if we only have an integer Key
+      // This solves the issue where List endpoint returns "Key: 0" but Update endpoint expects "ID: 5"
+      try {
+        console.log(`🕵️ verifying role ID details for Key: ${selectedRoleId}...`);
+
+        // Try fetching the specific role/group details
+        // Backend url might be /users/roles/0/ -> redirects to real group? or returns details
+        const detailRes = await api.get(`/users/roles/${selectedRoleId}/`);
+        const detailData = detailRes.data;
+        console.log("🔍 Role Detail Response:", detailData);
+
+        // If the detail response has an 'id' that is DIFFERENT from the 'key' or our current 'id', use it!
+        // Also check if 'group_id' is present (common custom pattern)
+        if (detailData.id && detailData.id !== selectedRoleId) {
+          console.log(`✅ Found Real DB ID: ${detailData.id} (was using Key: ${selectedRoleId})`);
+          targetId = detailData.id;
+        } else if (detailData.group_id) {
+          console.log(`✅ Found Group ID: ${detailData.group_id}`);
+          targetId = detailData.group_id;
+        }
+
+      } catch (lookupErr) {
+        console.warn("⚠️ Could not fetch role details. Trying with original ID.", lookupErr);
+      }
 
       const payload = {
         name: role.name, // Keep existing name
         permissions: editedRolePermissions
       };
 
+      console.log(`🚀 Sending PUT request to: /users/roles/${targetId}/update/`, payload);
+
       // PUT /api/users/roles/<id>/update/
-      await api.put(`/users/roles/${selectedRoleId}/update/`, payload);
+      await api.put(`/users/roles/${targetId}/update/`, payload);
+
+      console.log("✅ Save success!");
 
       // Update local state to reflect saved changes as "current"
       setRoles(prev => prev.map(r =>
@@ -104,8 +151,8 @@ export default function RolesAndPermissions() {
 
       alert("Role updated successfully.");
     } catch (error) {
-      console.error("Save failed", error);
-      alert("Failed to save role.");
+      console.error("❌ Save failed:", error);
+      alert(`Failed to save role: ${error.message || "Unknown error"}`);
     } finally {
       setSaving(false);
     }
@@ -262,7 +309,7 @@ export default function RolesAndPermissions() {
                           <p className={`text-xs font-medium ${isChecked ? "text-gray-900" : "text-gray-600"}`}>
                             {formatPermissionName(perm.codename)}
                           </p>
-                          <p className="text-[10px] text-gray-400 font-mono mt-0.5">{perm.codename}</p>
+                          {/* <p className="text-[10px] text-gray-400 font-mono mt-0.5">{perm.codename}</p> */}
                         </div>
                       </label>
                     );

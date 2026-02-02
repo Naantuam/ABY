@@ -30,10 +30,21 @@ const Login = () => {
 
       window.location.href = "/dashboard";
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        "Login failed due to an unknown error.";
+      let errorMessage = "Login failed due to an unknown error.";
+
+      if (err.response?.data) {
+        const data = err.response.data;
+        if (data.detail) {
+          errorMessage = data.detail;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (typeof data === "object") {
+          // Flatten validation errors (e.g. { email: ["Invalid"], password: ["Required"] })
+          errorMessage = Object.values(data).flat().join(" ");
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
 
       console.error("Login failed:", errorMessage);
 

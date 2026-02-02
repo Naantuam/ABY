@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // 1️⃣ DEFINE BASE URL
-let BASE_URL = import.meta.env.VITE_API_URL || "https://abs-software-v2.onrender.com";
+let BASE_URL = import.meta.env.VITE_API_URL || "https://abs-software-v2-1-2wog.onrender.com";
 
 // Ensure clean URL (no trailing slash)
 if (BASE_URL.endsWith("/")) {
@@ -51,7 +51,7 @@ api.interceptors.response.use(
       error.response &&
       error.response.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes("/token/refresh/") 
+      !originalRequest.url.includes("/token/refresh/")
     ) {
       originalRequest._retry = true;
 
@@ -60,8 +60,8 @@ api.interceptors.response.use(
 
         // If no refresh token exists, we can't refresh. Go to login.
         if (!refreshToken) {
-            console.warn("⚠️ No refresh token found. Redirecting to login.");
-            throw new Error("No refresh token");
+          console.warn("⚠️ No refresh token found. Redirecting to login.");
+          throw new Error("No refresh token");
         }
 
         console.log("🔄 Access token expired. Attempting refresh...");
@@ -87,12 +87,12 @@ api.interceptors.response.use(
 
       } catch (refreshError) {
         console.error("❌ Session expired or Refresh Token invalid:", refreshError);
-        
+
         // If Refresh fails, the user MUST log in again
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         window.location.href = ""; // Force redirect
-        
+
         return Promise.reject(refreshError);
       }
     }
