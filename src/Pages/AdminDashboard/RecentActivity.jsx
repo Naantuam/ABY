@@ -80,13 +80,14 @@ export default function RecentActivity() {
     const fetchActivities = async () => {
       try {
         const response = await api.get("/activity/recent/");
-        // Map API response to match UI structure
+        // Map API response to match UI structure based on provided JSON keys
         const mappedActivities = response.data.map(item => ({
           id: item.id,
-          type: item.app_name ? item.app_name.toLowerCase() : "project", // Fallback to 'project'
-          title: `${item.model_name} ${item.action}`, // Construct title like "Operation view"
+          // Handle 'projects' -> 'project' mapping explicitly as per JSON
+          type: (item.app_name === 'projects' ? 'project' : (item.app_name ? item.app_name.toLowerCase() : "project")),
+          title: `${item.model_name} ${item.action}`,
           description: item.description,
-          time: getRelativeTime(item.created_at),
+          time: getRelativeTime(item.created_at), // Use created_at for time
           user: item.user ? item.user.trim() : "Unknown",
         }));
         setActivities(mappedActivities);

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // 1️⃣ DEFINE BASE URL
-let BASE_URL = import.meta.env.VITE_API_URL || "https://abs-software-v2-1-2wog.onrender.com";
+let BASE_URL = import.meta.env.VITE_API_URL || "https://abs-software-v2-s2qp.onrender.com";
 
 // Ensure clean URL (no trailing slash)
 if (BASE_URL.endsWith("/")) {
