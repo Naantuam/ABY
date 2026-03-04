@@ -5,7 +5,7 @@ import api from "../../api";
 
 export default function InventoryCard() {
   const navigate = useNavigate();
-  // Static stats for now as per StatInfo.jsx
+  // Dynamic stats fetched from API
   const [stats, setStats] = useState({
     total: 0,
     inStock: 0,
@@ -20,28 +20,22 @@ export default function InventoryCard() {
   const fetchSummary = async () => {
     try {
       const response = await api.get("/inventory/summary/");
-      // Assuming response.data has keys matching what we need or we map them
-      // If backend returns { total_items, in_stock, restocking, low_stock }
-      // I need to know the backend structure or guess it. 
-      // Based on previous task context, user provided: 
-      // GET /api/inventory/summary/ -> inventory summary (totals, low stock, critical items)
-      // I'll assume snake_case mapping similar to items.
       const data = response.data;
       setStats({
-        total: data.total_items || data.total || 0,
-        inStock: data.in_stock || data.inStock || 0,
-        restocking: data.restocking || 0,
-        lowStock: data.low_stock || data.lowStock || 0
+        total: data.total_items || data.total_stock || 0,
+        inStock: data.in_stock || 0,
+        restocking: Array.isArray(data.critical_items) ? data.critical_items.length : 0,
+        lowStock: Array.isArray(data.low_stock_alerts) ? data.low_stock_alerts.length : 0
       });
     } catch (err) {
-      console.error("Failed to fetch inventory summary:", err);
+      console.error("❌ Failed to fetch inventory summary:", err);
     }
   };
 
   return (
     <div className="w-full bg-gray-50 flex justify-center items-center py-3">
       <div
-        onClick={() => navigate('/admin/inventory')}
+        onClick={() => navigate('/inventory')}
         className="bg-white rounded-2xl shadow-md p-4 flex flex-col justify-between w-[96%] cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
       >
         {/* Header */}

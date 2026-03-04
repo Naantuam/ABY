@@ -30,6 +30,11 @@ export default function StatInfo() {
     total: 0, recent: 0, resolved: 0, investigating: 0, loading: true,
   });
 
+  // 5. STATE FOR INVENTORY STATS
+  const [inventoryStats, setInventoryStats] = useState({
+    total: 0, inStock: 0, restocking: 0, lowStock: 0, loading: true,
+  });
+
   // --- EFFECT FOR USER STATS ---
   useEffect(() => {
     async function fetchUserStats() {
@@ -123,8 +128,30 @@ export default function StatInfo() {
     fetchSafetyStats();
   }, []);
 
+  // --- NEW EFFECT FOR INVENTORY SUMMARY ---
+  useEffect(() => {
+    async function fetchInventorySummary() {
+      try {
+        const response = await api.get("/inventory/summary/");
+        const data = response.data;
+
+        setInventoryStats({
+          total: data.total_items || data.total_stock || 0,
+          inStock: data.in_stock || 0,
+          restocking: Array.isArray(data.critical_items) ? data.critical_items.length : (data.critical_items || 0),
+          lowStock: Array.isArray(data.low_stock_alerts) ? data.low_stock_alerts.length : (data.low_stock || 0),
+          loading: false,
+        });
+      } catch (error) {
+        console.error("❌ Failed to fetch inventory summary via API:", error.message);
+        setInventoryStats(prev => ({ ...prev, loading: false }));
+      }
+    }
+    fetchInventorySummary();
+  }, []);
+
   // Optional: Display a loading message if ANY are loading
-  if (userStats.loading || equipmentStats.loading || projectStats.loading || safetyStats.loading) {
+  if (userStats.loading || equipmentStats.loading || projectStats.loading || safetyStats.loading || inventoryStats.loading) {
     return <div className="text-center p-8">Loading dashboard statistics...</div>;
   }
 
@@ -137,7 +164,7 @@ export default function StatInfo() {
           title="Users"
           count={userStats.total}
           icon={UserGroupIcon}
-          href="/admin/users"
+          href="/users"
           badges={[
             { label: "Active", color: "green", number: userStats.active },
             { label: "Inactive", color: "red", number: userStats.inactive },
@@ -150,7 +177,7 @@ export default function StatInfo() {
           title="Equipments"
           count={equipmentStats.total}
           icon={Cog6ToothIcon}
-          href="/admin/equipments"
+          href="/equipments"
           badges={[
             { label: "Available", color: "green", number: equipmentStats.available },
             { label: "Active", color: "blue", number: equipmentStats.active },
@@ -164,7 +191,7 @@ export default function StatInfo() {
           title="Projects"
           count={projectStats.total}
           icon={FolderIcon}
-          href="/admin/projects"
+          href="/projects"
           badges={[
             { label: "Completed", color: "green", number: projectStats.completed },
             { label: "Active", color: "blue", number: projectStats.active },
@@ -178,7 +205,7 @@ export default function StatInfo() {
           title="Safety Incidents"
           count={safetyStats.total}
           icon={ShieldExclamationIcon}
-          href="/admin/safety"
+          href="/safety"
           badges={[
             { label: "Recent", color: "blue", number: safetyStats.recent },
             { label: "Resolved", color: "green", number: safetyStats.resolved },
@@ -186,16 +213,16 @@ export default function StatInfo() {
           ]}
         />
 
-        {/* Inventory (Still static) */}
+        {/* Inventory (Dynamic Data) */}
         <StatCard
           title="Inventory"
-          count={14}
+          count={inventoryStats.total}
           icon={ArchiveBoxIcon}
-          href="/admin/inventory"
+          href="/inventory"
           badges={[
-            { label: "In Stock", color: "green", number: 8 },
-            { label: "Restocking", color: "yellow", number: 2 },
-            { label: "Low stock", color: "red", number: 4 },
+            { label: "In Stock", color: "green", number: inventoryStats.inStock },
+            { label: "Restocking", color: "yellow", number: inventoryStats.restocking },
+            { label: "Low stock", color: "red", number: inventoryStats.lowStock },
           ]}
         />
       </div>

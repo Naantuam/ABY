@@ -54,23 +54,27 @@ export default function InventoryList() {
       setLoading(true);
       const response = await api.get("/inventory/items/");
       const data = response.data;
-      // Handle pagination structure: { results: [], count: ... }
+      console.log("📦 Inventory Data received:", data);
+
       const arr = Array.isArray(data) ? data : (data.results || []);
 
       const formatted = arr.map(item => ({
         id: item.id,
-        name: item.item_name || item.name,
-        category: item.category,
-        quantity: item.quantity,
+        name: item.item_name || item.name || "Unnamed Item",
+        category: item.category || "Uncategorized",
+        quantity: item.quantity || 0,
         unit: item.unit || "pcs",
         lastUpdated: item.updated_at ? item.updated_at.split('T')[0] : (item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
-        status: item.status,
+        status: item.status || "good",
       }));
 
       setItems(formatted);
     } catch (err) {
-      console.error("Failed to fetch inventory:", err);
-      setError("Failed to load inventory items.");
+      console.error("❌ Failed to fetch inventory:", err);
+      const serverMsg = err.response?.data && typeof err.response.data === 'string'
+        ? err.response.data
+        : JSON.stringify(err.response?.data || err.message);
+      setError(`Failed to load inventory items. Server said: ${serverMsg.substring(0, 200)}`);
     } finally {
       setLoading(false);
     }
@@ -212,13 +216,14 @@ export default function InventoryList() {
       // Map to backend fields
       // Map to backend fields
       const payload = {
-        item_name: item.name,
-        category: item.category,
-        quantity: parseInt(item.quantity, 10),
-        unit: item.unit,
-        status: item.status
-        // Note: 'updated_at' is typically auto-handled by backend, but we can send if needed
+        item_name: item.name || "Unnamed Item",
+        category: item.category || "Uncategorized",
+        quantity: isNaN(parseInt(item.quantity)) ? 0 : parseInt(item.quantity, 10),
+        unit: item.unit || "pcs",
+        status: item.status || "good"
       };
+
+      console.log("📤 Sending Inventory Payload:", payload);
 
       try {
         if (id.toString().startsWith("TEMP-")) {
@@ -233,7 +238,7 @@ export default function InventoryList() {
               category: newItem.category,
               quantity: newItem.quantity,
               unit: newItem.unit,
-              lastUpdated: newItem.updated_at || newItem.created_at || new Date().toISOString(),
+              lastUpdated: (newItem.updated_at || newItem.created_at || new Date().toISOString()).split('T')[0],
               status: newItem.status
             } : it))
           );
@@ -248,7 +253,7 @@ export default function InventoryList() {
               category: updatedItem.category,
               quantity: updatedItem.quantity,
               unit: updatedItem.unit,
-              lastUpdated: updatedItem.updated_at || updatedItem.created_at || new Date().toISOString(),
+              lastUpdated: (updatedItem.updated_at || updatedItem.created_at || new Date().toISOString()).split('T')[0],
               status: updatedItem.status
             } : it))
           );
@@ -256,8 +261,11 @@ export default function InventoryList() {
         setEditingRowId(null);
         setOriginalItem(null);
       } catch (err) {
-        console.error("Save error details:", err.response?.data);
-        alert("Failed to save record: " + JSON.stringify(err.response?.data || err.message));
+        console.error("❌ Save error details:", err.response?.data);
+        const serverMsg = err.response?.data && typeof err.response.data === 'string'
+          ? err.response.data
+          : JSON.stringify(err.response?.data || err.message);
+        alert("Failed to save record. Server response:\n" + serverMsg.substring(0, 500));
       }
 
     } else if (pendingAction.type === "delete") {
