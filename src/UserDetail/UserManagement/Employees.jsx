@@ -15,14 +15,9 @@ import {
 } from "lucide-react";
 import UserProfileModal from "./EmployeeProfileModal";
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
-// 🔹 Utility: Convert JSON → CSV string
-function convertToCSV(data) {
-  if (!data || !data.length) return "";
-  const headers = Object.keys(data[0]);
-  const rows = data.map((row) => headers.map((field) => row[field]).join(","));
-  return [headers.join(","), ...rows].join("\n");
-}
+
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -137,14 +132,15 @@ export default function Employees() {
 
   const handleExport = () => {
     if (filteredEmployees.length === 0) return alert("No employees to export!");
-    const csv = convertToCSV(filteredEmployees);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "employees.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const exportData = filteredEmployees.map(emp => ({
+      "ID": emp.id,
+      "Name": emp.name,
+      "Email": emp.email,
+      "Phone": emp.phone,
+      "Rank": emp.rank,
+      "Amount": emp.amount
+    }));
+    exportToExcel(exportData, "employees");
   };
 
   const handleAddEmployee = () => {

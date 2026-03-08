@@ -4,6 +4,7 @@ import {
    AlertTriangle, Search, Filter
 } from "lucide-react";
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
 export default function RiskList() {
    const [risks, setRisks] = useState([]);
@@ -163,6 +164,19 @@ export default function RiskList() {
       }
    };
 
+   const handleExport = () => {
+      if (filteredRisks.length === 0) return alert("No risks to export!");
+      const exportData = filteredRisks.map(r => ({
+         "Assessment Date": r.assessment_date,
+         "Project Name": r.project,
+         "Hazard Type": r.hazard_type,
+         "Likelihood": r.likelihood,
+         "Impact": r.impact,
+         "Status": r.status
+      }));
+      exportToExcel(exportData, "Risk_Assessments");
+   };
+
    const getStatusColor = (status) => {
       switch (status?.toLowerCase()) {
          case "reported": return "bg-red-100 text-red-700 border-red-200";
@@ -219,7 +233,7 @@ export default function RiskList() {
                <p className="text-xs text-gray-500">Track and mitigate safety hazards</p>
             </div>
             <div className="flex gap-2">
-               <button className="flex items-center gap-2 border px-3 py-2 rounded-lg bg-white text-gray-600 text-xs font-bold hover:bg-gray-50 shadow-sm transition"><Download className="w-4 h-4" /> Export</button>
+               <button onClick={handleExport} className="flex items-center gap-2 border px-3 py-2 rounded-lg bg-white text-gray-600 text-xs font-bold hover:bg-gray-50 shadow-sm transition"><Download className="w-4 h-4" /> Export</button>
                <button onClick={handleAdd} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-xs font-bold shadow-sm transition active:scale-95"><Plus className="w-4 h-4" /> Add Risk</button>
             </div>
          </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Download, Trash, Loader2, Search, Filter, X, Edit, Check, Plus } from "lucide-react";
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
 export default function InventoryList() {
   const [items, setItems] = useState([]);
@@ -149,18 +150,19 @@ export default function InventoryList() {
 
   const hasActiveFilters = Object.values(filters).some(val => val !== "");
 
-  // 🔹 Export CSV
+  // 🔹 Export Excel
   const handleExport = () => {
     if (filteredItems.length === 0) return alert("No items to export!");
-    const csv = convertToCSV(filteredItems);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "inventory_list.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const exportData = filteredItems.map(item => ({
+      "S/N": item.id,
+      "Item Name": item.name,
+      "Category": item.category,
+      "Quantity": item.quantity,
+      "Unit": item.unit,
+      "Last Updated": item.lastUpdated,
+      "Status": formatStatus(item.status)
+    }));
+    exportToExcel(exportData, "inventory_list");
   };
 
   const handleAddItem = () => {

@@ -3,7 +3,7 @@ import {
   EnvelopeIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
-import { UserCircle } from 'lucide-react';
+import { UserCircle, LogOut } from 'lucide-react';
 import api from "../api"
 
 export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { } }) {
@@ -77,7 +77,7 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { } 
 
           {/* User Info & Icon */}
           <div className="flex items-center gap-3 pl-4 border-l border-gray-100">
-            <div className="hidden md:flex flex-col items-end">
+            <div className="flex flex-col items-end">
               {loading ? (
                 <div className="h-4 w-24 bg-gray-100 rounded animate-pulse mb-1"></div>
               ) : (
@@ -93,13 +93,28 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { } 
               )}
             </div>
 
-            <div className="relative group cursor-default">
+            <div className="relative group cursor-pointer">
               <div className="text-gray-400 bg-gray-50 rounded-full p-1 border border-gray-100 group-hover:border-blue-200 group-hover:text-blue-500 transition-all">
                 {currentUser?.picture ? (
                   <img src={currentUser.picture} alt="Profile" className="h-9 w-9 rounded-full object-cover" />
                 ) : (
                   <UserCircle className="h-9 w-9" />
                 )}
+              </div>
+
+              {/* Logout Dropdown */}
+              <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg py-1 border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("access_token");
+                    localStorage.removeItem("refresh_token");
+                    window.location.href = "/";
+                  }}
+                  className="flex items-center w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </button>
               </div>
             </div>
           </div>

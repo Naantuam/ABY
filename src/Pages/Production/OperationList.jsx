@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Download, Trash, Loader2, Search, Filter, X, Edit, Check, Plus } from "lucide-react";
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
 export default function OperationList() {
   const [items, setItems] = useState([]);
@@ -139,17 +140,19 @@ export default function OperationList() {
 
   const hasActiveFilters = Object.values(filters).some(val => val !== "");
 
-  // 🔹 Export CSV
+  // 🔹 Export Excel
   const handleExport = () => {
     if (filteredItems.length === 0) return alert("No items to export!");
-    const csv = convertToCSV(filteredItems);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Operation_list.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const exportData = filteredItems.map(item => ({
+      "S/N": item.id,
+      "Date": item.Date,
+      "Description": item.Description,
+      "Income": item.Income,
+      "Expenditure": item.Expenditure,
+      "Rate": item.Rate,
+      "Balance": item.Bal
+    }));
+    exportToExcel(exportData, "Operation_list");
   };
 
   const handleAdd = () => {

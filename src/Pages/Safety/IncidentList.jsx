@@ -4,6 +4,7 @@ import {
   AlertCircle, Search, Filter, Hash, ChevronDown, MapPin
 } from "lucide-react";
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
 export default function IncidentList() {
   const [incidents, setIncidents] = useState([]);
@@ -136,14 +137,16 @@ export default function IncidentList() {
 
   const handleExport = () => {
     if (filteredIncidents.length === 0) return alert("No Incidents to export!");
-    const csv = convertToCSV(filteredIncidents);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Incident_list.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const exportData = filteredIncidents.map(inc => ({
+      "Incident ID": inc.id,
+      "Date": inc.incident_date,
+      "Project": inc.project,
+      "Description": inc.description,
+      "Severity": inc.severity,
+      "Actions Taken": inc.actions_taken || "None",
+      "Status": inc.incident_status
+    }));
+    exportToExcel(exportData, "Incidents_List");
   };
 
   const handleAdd = () => {

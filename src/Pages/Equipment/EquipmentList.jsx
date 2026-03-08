@@ -4,6 +4,7 @@ import {
   Search, Filter, ChevronDown, Check
 } from "lucide-react";
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
 export default function EquipmentList() {
   const [equipment, setEquipment] = useState([]);
@@ -149,14 +150,16 @@ export default function EquipmentList() {
 
   const handleExport = () => {
     if (filteredEquipment.length === 0) return alert("No equipment to export!");
-    const csv = convertToCSV(filteredEquipment);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "equipment_list.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const exportData = filteredEquipment.map(eq => ({
+      "Equipment ID": eq.id,
+      "Name": eq.name,
+      "Type": eq.type,
+      "Purchase Date": eq.date,
+      "Serial Number": eq.serialNumber,
+      "Cost": eq.cost,
+      "Status": eq.status
+    }));
+    exportToExcel(exportData, "Equipment_Inventory");
   };
 
   const handleAdd = () => {

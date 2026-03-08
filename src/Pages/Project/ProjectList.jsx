@@ -4,6 +4,7 @@ import {
   Search, Filter, ChevronDown, MapPin
 } from "lucide-react";
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
 export default function ProjectList() {
   const [projects, setProjects] = useState([]);
@@ -179,6 +180,20 @@ export default function ProjectList() {
     } catch (error) { alert("Could not delete project"); }
   }
 
+  const handleExport = () => {
+    const exportData = filteredProjects.map(pr => ({
+      ID: pr.id,
+      "Project Name": pr.name,
+      Location: pr.location,
+      "Start Date": pr.startDate,
+      "End Date": pr.endDate,
+      Budget: pr.budget,
+      Owner: pr.owner?.username || "N/A",
+      Status: pr.status
+    }));
+    exportToExcel(exportData, "Projects_Directory");
+  };
+
   const addTeamMember = (userId) => {
     const userToAdd = allUsers.find(u => Number(u.id) === Number(userId));
     if (userToAdd && !currentProject.assigned_team.find(m => m.id === userToAdd.id)) {
@@ -243,7 +258,7 @@ export default function ProjectList() {
       <div className="hidden lg:flex flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-xl font-bold text-gray-800">Projects Directory</h2>
         <div className="flex gap-2">
-          <button className="flex items-center gap-1 border px-3 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm">
+          <button onClick={handleExport} className="flex items-center gap-1 border px-3 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm hover:bg-gray-200">
             <Download className="w-4 h-4" /> Export
           </button>
           <button onClick={() => openModal(null, 'add')} className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">

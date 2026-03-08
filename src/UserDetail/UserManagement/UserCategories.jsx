@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import EditUserModal from "./EditUserModal";
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
 export default function UserCategories() {
   const [categories, setCategories] = useState([]);
@@ -210,6 +211,21 @@ export default function UserCategories() {
     }
   };
 
+  const handleExport = () => {
+    if (!selectedCategory) return;
+    const users = usersByCategory[selectedCategory.key] || [];
+    if (users.length === 0) return alert("No users to export in this category!");
+
+    const exportData = users.map(u => ({
+      "Name": u.username,
+      "Email": u.email,
+      "Phone": u.phone_number || "-",
+      "Department": u.department || "-",
+      "Role": selectedCategory.label
+    }));
+    exportToExcel(exportData, `${selectedCategory.label}_Users`);
+  };
+
   const closeAddUserModal = () => {
     setShowAddUserForm(false);
     setNewUserTempPassword("");
@@ -268,9 +284,14 @@ export default function UserCategories() {
               </button>
               <h2 className="text-base font-bold text-gray-800">{selectedCategory.label}</h2>
             </div>
-            <button onClick={() => setShowAddUserForm(true)} className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
-              <PlusIcon className="h-3 w-3" /> Add User
-            </button>
+            <div className="flex gap-2">
+              <button onClick={handleExport} className="px-3 py-1.5 rounded-md bg-white border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-50 flex items-center gap-1 shadow-sm">
+                Export
+              </button>
+              <button onClick={() => setShowAddUserForm(true)} className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
+                <PlusIcon className="h-3 w-3" /> Add User
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">

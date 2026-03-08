@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Download, Trash, Loader2, Search, Filter, X, Edit, Plus, Calendar, DollarSign, Check } from "lucide-react"; // Added Loader2
 import api from "../../api";
+import { exportToExcel } from "../../utils/exportUtils";
 
 export default function DailyProduction() {
   // Rates (internal numeric values)
@@ -257,14 +258,18 @@ export default function DailyProduction() {
   // CSV export handler
   const handleExport = () => {
     if (filteredItems.length === 0) return alert("No items to export!");
-    const csv = convertToCSV(filteredItems);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "DailyProduction.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const exportData = filteredItems.map(item => ({
+      "S/N": item.id,
+      "Date": item.Date,
+      "Trucks": item.Trucks,
+      "Quantity": item.Quantity,
+      "Federal Royalty": item.FederalRoyalty,
+      "State Haulage": item.StateHaulage,
+      "MoU": item.MoU,
+      "Total": item.Total,
+      "Remarks": item.Remarks || "None"
+    }));
+    exportToExcel(exportData, "Daily_Production");
   };
 
 
