@@ -81,7 +81,7 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { } 
               {loading ? (
                 <div className="h-4 w-24 bg-gray-100 rounded animate-pulse mb-1"></div>
               ) : (
-                <span className="text-sm font-bold text-gray-800 leading-none">{currentUser?.email || "User"}</span>
+                <span className="text-sm font-bold text-gray-800 leading-none">{currentUser?.username || currentUser?.email || "User"}</span>
               )}
 
               {loading ? (
