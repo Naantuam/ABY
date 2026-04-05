@@ -1,12 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Download, Trash, Plus, Eye, Edit, X, User, Users,
-  Search, Filter, ChevronDown, MapPin
+  Search, Filter, ChevronDown, MapPin, Upload
 } from "lucide-react";
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
+import { importFromExcel } from "../../utils/importUtils";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function ProjectList() {
+  const { canAdd, canEdit, canDelete } = usePermissions('projects');
   const [projects, setProjects] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,7 +160,7 @@ export default function ProjectList() {
     };
 
     try {
-      if (modalMode === 'add') {
+      if (modalMode === 'add' || String(currentProject.id).startsWith("TEMP-")) {
         await api.post("/projects/", payload);
         alert("Project Created!");
       } else {
@@ -192,6 +195,42 @@ export default function ProjectList() {
       Status: pr.status
     }));
     exportToExcel(exportData, "Projects_Directory");
+  };
+
+  const fileInputRef = useRef(null);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromExcel(file);
+      const newProjects = data.map((row, index) => {
+        return {
+          id: `TEMP-${Date.now()}-${index}`,
+          name: row["Project Name"] || "New Project",
+          location: row["Location"] || "",
+          startDate: String(row["Start Date"]).split("T")[0] || new Date().toISOString().split("T")[0],
+          endDate: row["End Date"] || "",
+          budget: row["Budget"] || 0,
+          owner: null,
+          assigned_team: [],
+          status: row["Status"] || "Active",
+          project_name: row["Project Name"] || "New Project",
+          start_date: String(row["Start Date"]).split("T")[0] || new Date().toISOString().split("T")[0],
+          end_date: row["End Date"] || "",
+        };
+      });
+
+      setProjects(prev => [...newProjects, ...prev]);
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("Failed to import file.");
+    } finally {
+      if (fileInputRef.current) {
+         fileInputRef.current.value = "";
+      }
+    }
   };
 
   const addTeamMember = (userId) => {
@@ -245,12 +284,14 @@ export default function ProjectList() {
           </button>
 
           {/* Add Trigger (Mobile) */}
-          <button
-            onClick={() => openModal(null, 'add')}
-            className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          {canAdd && (
+            <button
+              onClick={() => openModal(null, 'add')}
+              className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -258,12 +299,26 @@ export default function ProjectList() {
       <div className="hidden lg:flex flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-xl font-bold text-gray-800">Projects Directory</h2>
         <div className="flex gap-2">
+          <input 
+            type="file" 
+            accept=".xlsx, .xls, .csv" 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleImport}
+          />
+          {canAdd && (
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 border px-3 py-2 rounded-lg bg-green-100 text-green-700 text-sm hover:bg-green-200">
+              <Upload className="w-4 h-4" /> Import
+            </button>
+          )}
           <button onClick={handleExport} className="flex items-center gap-1 border px-3 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm hover:bg-gray-200">
             <Download className="w-4 h-4" /> Export
           </button>
-          <button onClick={() => openModal(null, 'add')} className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
-            <Plus className="w-4 h-4" /> New Project
-          </button>
+          {canAdd && (
+            <button onClick={() => openModal(null, 'add')} className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+              <Plus className="w-4 h-4" /> New Project
+            </button>
+          )}
         </div>
       </div>
 
@@ -340,8 +395,8 @@ export default function ProjectList() {
                     </td>
                     <td className="px-4 py-3 text-right flex justify-end gap-2">
                       <button onClick={() => openModal(pr, 'view')} className="text-gray-400 hover:text-blue-600"><Eye className="w-4 h-4" /></button>
-                      <button onClick={() => openModal(pr, 'edit')} className="text-gray-400 hover:text-green-600"><Edit className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(pr.id)} className="text-gray-400 hover:text-red-600"><Trash className="w-4 h-4" /></button>
+                      {canEdit && <button onClick={() => openModal(pr, 'edit')} className="text-gray-400 hover:text-green-600"><Edit className="w-4 h-4" /></button>}
+                      {canDelete && <button onClick={() => handleDelete(pr.id)} className="text-gray-400 hover:text-red-600"><Trash className="w-4 h-4" /></button>}
                     </td>
                   </tr>
                 ))
@@ -363,8 +418,8 @@ export default function ProjectList() {
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-xs font-mono font-medium text-gray-700">{formatCurrency(pr.budget)}</span>
                   <div className="flex gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); openModal(pr, 'edit'); }} className="p-1.5 bg-gray-100 rounded text-blue-600"><Edit className="w-3 h-3" /></button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(pr.id); }} className="p-1.5 bg-gray-100 rounded text-red-600"><Trash className="w-3 h-3" /></button>
+                    {canEdit && <button onClick={(e) => { e.stopPropagation(); openModal(pr, 'edit'); }} className="p-1.5 bg-gray-100 rounded text-blue-600"><Edit className="w-3 h-3" /></button>}
+                    {canDelete && <button onClick={(e) => { e.stopPropagation(); handleDelete(pr.id); }} className="p-1.5 bg-gray-100 rounded text-red-600"><Trash className="w-3 h-3" /></button>}
                   </div>
                 </div>
               </div>

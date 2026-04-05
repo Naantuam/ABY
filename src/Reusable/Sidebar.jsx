@@ -15,18 +15,46 @@ function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
 }
 
-export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
+export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appPermissions }) {
     const location = useLocation();
 
     const navigation = [
-        { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon },
-        { name: 'User Management', href: '/users', icon: UsersIcon },
-        { name: 'Equipment Management', href: '/equipment', icon: BriefcaseIcon },
-        { name: 'Project Management', href: '/project', icon: WrenchScrewdriverIcon },
-        { name: 'Safety Management', href: '/safety', icon: ShieldCheckIcon },
-        { name: 'Inventory Management', href: '/inventory', icon: ArchiveBoxIcon },
-        { name: 'Production', href: '/production', icon: ChartBarSquareIcon },
+        { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon, app: 'admin_only' },
+        { name: 'User Management', href: '/users', icon: UsersIcon, app: 'admin_only' },
+        { name: 'Equipment Management', href: '/equipment', icon: BriefcaseIcon, app: 'equipment' },
+        { name: 'Project Management', href: '/project', icon: WrenchScrewdriverIcon, app: 'projects' },
+        { name: 'Safety Management', href: '/safety', icon: ShieldCheckIcon, app: 'safety' },
+        { name: 'Inventory Management', href: '/inventory', icon: ArchiveBoxIcon, app: 'inventory' },
+        { name: 'Production', href: '/production', icon: ChartBarSquareIcon, app: 'production' },
     ];
+
+    const userRole = roles?.find(r => r.id === user?.role);
+    const userPermIds = userRole?.permissions || [];
+
+    const hasAccess = (itemApp) => {
+        if (!user) return false;
+        if (user.is_superuser) return true;
+        
+        // Admin apps: Dashboard and User Management
+        // Visible to Project Manager (role === 0), superusers, or if they explicitly have "users" permissions
+        if (itemApp === 'admin_only') {
+            return user.role === 0 || (appPermissions?.['users'] && appPermissions['users'].some(perm => userPermIds.includes(perm.id)));
+        }
+
+        const modulePerms = appPermissions?.[itemApp] || [];
+        
+        // Find the specific "view" permission for this module
+        const viewPerm = modulePerms.find(perm => perm.codename && perm.codename.includes('view'));
+        
+        if (viewPerm) {
+            return userPermIds.includes(viewPerm.id);
+        }
+
+        // Fallback: If no explicit 'view' perm is identified, check if they have any permission
+        return modulePerms.some(perm => userPermIds.includes(perm.id));
+    };
+
+    const allowedNavigation = navigation.filter(item => hasAccess(item.app));
 
     return (
         <div className="flex relative font-sans h-screen">
@@ -57,7 +85,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
                     {/* Navigation links */}
                     <nav className="space-y-1">
-                        {navigation.map((item) => {
+                        {allowedNavigation.map((item) => {
                             const isActive = location.pathname.startsWith(item.href);
                             return (
                                 <Link

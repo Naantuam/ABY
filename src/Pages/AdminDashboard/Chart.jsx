@@ -56,8 +56,8 @@ export default function OperationsChart() {
         const [opsRes, maintRes, opsSumRes, maintSumRes] = await Promise.all([
           api.get("/operation/"),
           api.get("/maintenance/"),
-          api.get("/operation/summary/"),
-          api.get("/maintenance/summary/")
+          api.get("/operation/summary/").catch(() => ({ data: null })),
+          api.get("/maintenance/summary/").catch(() => ({ data: null }))
         ]);
 
         const opsData = Array.isArray(opsRes.data) ? opsRes.data : (opsRes.data.results || []);

@@ -107,29 +107,19 @@ export default function RolesAndPermissions() {
 
       let targetId = selectedRoleId;
 
-      // 🕵️ JIT Resolution: Try to find the REAL Database ID if we only have an integer Key
-      // This solves the issue where List endpoint returns "Key: 0" but Update endpoint expects "ID: 5"
+      // 🕵️ Fallback ID Resolution
       try {
         console.log(`🕵️ verifying role ID details for Key: ${selectedRoleId}...`);
-
-        // Try fetching the specific role/group details
-        // Backend url might be /users/roles/0/ -> redirects to real group? or returns details
         const detailRes = await api.get(`/users/roles/${selectedRoleId}/`);
         const detailData = detailRes.data;
-        console.log("🔍 Role Detail Response:", detailData);
-
-        // If the detail response has an 'id' that is DIFFERENT from the 'key' or our current 'id', use it!
-        // Also check if 'group_id' is present (common custom pattern)
+        
         if (detailData.id && detailData.id !== selectedRoleId) {
-          console.log(`✅ Found Real DB ID: ${detailData.id} (was using Key: ${selectedRoleId})`);
           targetId = detailData.id;
         } else if (detailData.group_id) {
-          console.log(`✅ Found Group ID: ${detailData.group_id}`);
           targetId = detailData.group_id;
         }
-
       } catch (lookupErr) {
-        console.warn("⚠️ Could not fetch role details. Trying with original ID.", lookupErr);
+        console.warn("⚠️ Could not fetch role details. Will attempt to use original ID.", lookupErr);
       }
 
       const payload = {

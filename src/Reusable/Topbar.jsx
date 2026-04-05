@@ -1,15 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   EnvelopeIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
 import { UserCircle, LogOut } from 'lucide-react';
-import api from "../api"
 
-export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { } }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [roles, setRoles] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { }, user = null, roles = [], loadingAuth = true }) {
 
   // Define hardcoded roles mapping for frontend display
   const ROLE_MAP = {
@@ -20,37 +16,10 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { } 
     4: "Equipment Manager"
   };
 
-  // Find the full role object by matching the ID
-  const roleObject = roles.find(r => r.id === currentUser?.role);
-  const roleLabel = ROLE_MAP[currentUser?.role] || (roleObject ? roleObject.label : (currentUser?.role || "Unknown Role"));
-
-  // Fetch current user data and all roles on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Fetch both user and roles in parallel
-        const [userResponse, rolesResponse] = await Promise.all([
-          api.get('/users/me/'),
-          api.get('/users/roles/')
-        ]);
-
-        // Set user data
-        setCurrentUser(userResponse.data);
-
-        // Set roles data (handles paginated or simple array)
-        const rolesData = rolesResponse.data;
-        const rolesList = Array.isArray(rolesData) ? rolesData : rolesData.results || [];
-        setRoles(rolesList);
-
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const roleObject = roles.find(r => r.id === user?.role);
+  // Give priority to superuser label
+  const roleLabel = user?.is_superuser ? "Admin" 
+                    : (ROLE_MAP[user?.role] || (roleObject ? (roleObject.label ?? roleObject.name) : (user?.role || "Unknown Role")));
 
   return (
     <>
@@ -78,13 +47,13 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { } 
           {/* User Info & Icon */}
           <div className="flex items-center gap-3 pl-4 border-l border-gray-100">
             <div className="flex flex-col items-end">
-              {loading ? (
+              {loadingAuth ? (
                 <div className="h-4 w-24 bg-gray-100 rounded animate-pulse mb-1"></div>
               ) : (
-                <span className="text-sm font-bold text-gray-800 leading-none">{currentUser?.username || currentUser?.email || "User"}</span>
+                <span className="text-sm font-bold text-gray-800 leading-none">{user?.username || user?.email || "User"}</span>
               )}
 
-              {loading ? (
+              {loadingAuth ? (
                 <div className="h-3 w-16 bg-gray-100 rounded animate-pulse"></div>
               ) : (
                 <span className="text-[10px] uppercase tracking-wider font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full mt-1">
@@ -95,8 +64,8 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { } 
 
             <div className="relative group cursor-pointer">
               <div className="text-gray-400 bg-gray-50 rounded-full p-1 border border-gray-100 group-hover:border-blue-200 group-hover:text-blue-500 transition-all">
-                {currentUser?.picture ? (
-                  <img src={currentUser.picture} alt="Profile" className="h-9 w-9 rounded-full object-cover" />
+                {user?.picture ? (
+                  <img src={user.picture} alt="Profile" className="h-9 w-9 rounded-full object-cover" />
                 ) : (
                   <UserCircle className="h-9 w-9" />
                 )}

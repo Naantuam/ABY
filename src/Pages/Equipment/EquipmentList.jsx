@@ -1,17 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Download, Trash2, Plus, Edit, X, Calendar, DollarSign, Settings,
-  Search, Filter, ChevronDown, Check
+  Search, Filter, ChevronDown, Check, Upload
 } from "lucide-react";
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
+import { importFromExcel } from "../../utils/importUtils";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function EquipmentList() {
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Permission Logic
-  const canEdit = true;
+  const { canAdd, canEdit, canDelete } = usePermissions('equipment');
 
   // ────────────────────────────────
   // 1️⃣ Fetch Data
@@ -162,6 +164,39 @@ export default function EquipmentList() {
     exportToExcel(exportData, "Equipment_Inventory");
   };
 
+  const fileInputRef = useRef(null);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromExcel(file);
+      const newItems = data.map((row, index) => {
+        return {
+          id: `TEMP-${Date.now()}-${index}`,
+          name: row["Name"] || "",
+          type: row["Type"] || "N/A",
+          date: row["Purchase Date"] || new Date().toISOString().split("T")[0],
+          serialNumber: row["Serial Number"] || "N/A",
+          cost: row["Cost"] || "$0",
+          status: row["Status"] || "Available",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+      });
+
+      setEquipment(prev => [...newItems, ...prev]);
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("Failed to import file.");
+    } finally {
+      if (fileInputRef.current) {
+         fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleAdd = () => {
     const newItem = { name: "", type: "", date: new Date().toISOString().slice(0, 10), cost: "", status: "Available", serialNumber: "" };
     setEditing(newItem);
@@ -180,14 +215,19 @@ export default function EquipmentList() {
     };
 
     try {
-      if (editing.id) {
+      const isTemp = editing.id && String(editing.id).startsWith("TEMP-");
+      if (editing.id && !isTemp) {
         const response = await api.put(`/equipment/${editing.id}/`, payload);
         const updatedItem = { ...response.data, id: String(response.data.id), name: response.data.equipment_name, type: response.data.equipment_type, date: response.data.purchase_date, cost: `$${Number(response.data.purchase_cost).toLocaleString()}`, serialNumber: response.data.serial_number, createdAt: response.data.created_at, updatedAt: response.data.updated_at };
         setEquipment((prev) => prev.map((eq) => (eq.id === String(editing.id) ? updatedItem : eq)));
       } else {
         const response = await api.post("/equipment/", payload);
         const newItem = { ...response.data, id: String(response.data.id), name: response.data.equipment_name, type: response.data.equipment_type, date: response.data.purchase_date, cost: `$${Number(response.data.purchase_cost).toLocaleString()}`, serialNumber: response.data.serial_number, createdAt: response.data.created_at, updatedAt: response.data.updated_at };
-        setEquipment((prev) => [...prev, newItem]);
+        if (isTemp) {
+           setEquipment((prev) => prev.map((eq) => (eq.id === String(editing.id) ? newItem : eq)));
+        } else {
+           setEquipment((prev) => [...prev, newItem]);
+        }
       }
       setEditing(null);
       alert("Saved Successfully!");
@@ -242,7 +282,7 @@ export default function EquipmentList() {
           </button>
 
           {/* Add Trigger (Mobile) */}
-          {canEdit && (
+          {canAdd && (
             <button
               onClick={handleAdd}
               className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
@@ -260,8 +300,16 @@ export default function EquipmentList() {
           <p className="text-xs text-gray-500">Manage assets and machinery</p>
         </div>
         <div className="flex gap-2">
+          <input 
+            type="file" 
+            accept=".xlsx, .xls, .csv" 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleImport}
+          />
+          {canAdd && <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 border px-3 py-2 bg-green-50 text-green-700 text-xs font-medium rounded-lg hover:bg-green-100 shadow-sm"><Upload className="w-4 h-4" /> Import</button>}
           <button onClick={handleExport} className="flex items-center gap-1 border px-3 py-2 bg-white text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 shadow-sm"><Download className="w-4 h-4" /> Export</button>
-          {canEdit && <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-sm active:scale-95"><Plus className="w-4 h-4" /> Add Equipment</button>}
+          {canAdd && <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-sm active:scale-95"><Plus className="w-4 h-4" /> Add Equipment</button>}
         </div>
       </div>
 
@@ -294,8 +342,8 @@ export default function EquipmentList() {
                     <td className="px-4 py-3 font-mono text-black">{eq.cost}</td>
                     <td className="px-4 py-3"><span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-semibold border ${getStatusColor(eq.status)}`}>{eq.status}</span></td>
                     <td className="px-4 py-3 text-right flex justify-end gap-2">
-                      <button onClick={(e) => { e.stopPropagation(); setEditing(eq); }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded"><Edit className="w-4 h-4" /></button>
-                      <button onClick={(e) => handleDelete(eq.id, e)} className="text-red-600 hover:bg-red-50 p-1.5 rounded"><Trash2 className="w-4 h-4" /></button>
+                      {canEdit && <button onClick={(e) => { e.stopPropagation(); setEditing(eq); }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded"><Edit className="w-4 h-4" /></button>}
+                      {canDelete && <button onClick={(e) => handleDelete(eq.id, e)} className="text-red-600 hover:bg-red-50 p-1.5 rounded"><Trash2 className="w-4 h-4" /></button>}
                     </td>
                   </tr>
                 ))
@@ -329,8 +377,8 @@ export default function EquipmentList() {
               <div className="flex justify-between items-center border-t border-gray-100 pt-3">
                 <span className="text-[10px] text-gray-400 font-mono">ID: #{eq.id}</span>
                 <div className="flex gap-2">
-                  <button onClick={(e) => { e.stopPropagation(); setEditing(eq); }} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg"><Edit className="w-3 h-3" /> Edit</button>
-                  <button onClick={(e) => handleDelete(eq.id, e)} className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg"><Trash2 className="w-3 h-3" /> Delete</button>
+                  {canEdit && <button onClick={(e) => { e.stopPropagation(); setEditing(eq); }} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg"><Edit className="w-3 h-3" /> Edit</button>}
+                  {canDelete && <button onClick={(e) => handleDelete(eq.id, e)} className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg"><Trash2 className="w-3 h-3" /> Delete</button>}
                 </div>
               </div>
             </div>

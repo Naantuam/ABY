@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
-import { Download, Trash, Loader2, Search, Filter, X, Edit, Check, Plus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Download, Trash, Loader2, Search, Filter, X, Edit, Check, Plus, Upload } from "lucide-react";
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
+import { importFromExcel } from "../../utils/importUtils";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function OperationList() {
+  const { canAdd, canEdit, canDelete } = usePermissions('production');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -153,6 +156,37 @@ export default function OperationList() {
       "Balance": item.Bal
     }));
     exportToExcel(exportData, "Operation_list");
+  };
+
+  const fileInputRef = useRef(null);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromExcel(file);
+      const newItems = data.map((row, index) => {
+        return {
+          id: `TEMP-${Date.now()}-${index}`,
+          Date: row["Date"] || new Date().toISOString().split("T")[0],
+          Description: row["Description"] || "",
+          Income: row["Income"] || 0,
+          Expenditure: row["Expenditure"] || 0,
+          Rate: row["Rate"] || "",
+          Bal: row["Balance"] || 0,
+        };
+      });
+
+      setItems(prev => [...newItems, ...prev]);
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("Failed to import file.");
+    } finally {
+      if (fileInputRef.current) {
+         fileInputRef.current.value = "";
+      }
+    }
   };
 
   const handleAdd = () => {
@@ -311,12 +345,14 @@ export default function OperationList() {
           </button>
 
           {/* Add Trigger (Mobile) */}
-          <button
-            onClick={handleAdd}
-            className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          {canAdd && (
+            <button
+              onClick={handleAdd}
+              className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -326,19 +362,40 @@ export default function OperationList() {
 
 
         <div className="flex justify-between items-center">
-          <button
-            onClick={handleAdd}
-            className="bg-blue-600 text-white text-sm px-2 py-2 rounded-lg hover:bg-blue-700"
-          >
-            + Add Operation
-          </button>
+          {canAdd ? (
+            <button
+              onClick={handleAdd}
+              className="bg-blue-600 text-white text-sm px-2 py-2 rounded-lg hover:bg-blue-700"
+            >
+              + Add Operation
+            </button>
+          ) : <div />}
 
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-1 border px-1 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-          >
-            <Download className="w-4 h-4" />
-          </button>
+          <div className="flex gap-2">
+            <input 
+              type="file" 
+              accept=".xlsx, .xls, .csv" 
+              className="hidden" 
+              ref={fileInputRef}
+              onChange={handleImport}
+            />
+            {canAdd && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1 border px-2 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                title="Import from Excel"
+              >
+                <Upload className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1 border px-2 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              title="Export to Excel"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -511,29 +568,37 @@ export default function OperationList() {
                 <td className="px-2 py-2 flex gap-1">
                   {editingRowId === item.id ? (
                     <>
-                      <button
+                      {canEdit && <button
                         onClick={() => handleSaveRow(item.id)}
                         className="bg-green-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-600"
                       >
                         Save
-                      </button>
+                      </button>}
                       <button
+                        onClick={() => { setEditingRowId(null); setOriginalItem(null); fetchOperations(); }}
+                        className="bg-gray-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-gray-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {canEdit && <button
+                        onClick={() => {
+                          setEditingRowId(item.id);
+                          setOriginalItem(item);
+                        }}
+                        className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
+                      >
+                        Edit
+                      </button>}
+                      {canDelete && <button
                         onClick={() => handleDelete(item.id)}
                         className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600"
                       >
                         <Trash className="w-3 h-3" />
-                      </button>
+                      </button>}
                     </>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setEditingRowId(item.id);
-                        setOriginalItem(item);
-                      }}
-                      className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
-                    >
-                      Edit
-                    </button>
                   )}
                 </td>
               </tr>
@@ -601,12 +666,12 @@ export default function OperationList() {
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-              <button
+              {canDelete && <button
                 onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                 className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg"
               >
                 <Trash className="w-3 h-3" /> Delete
-              </button>
+              </button>}
             </div>
           </div>
         ))}
@@ -700,8 +765,8 @@ export default function OperationList() {
             </div>
 
             <div className="flex gap-3 mt-8 pt-4 border-t border-gray-100">
-              <button onClick={(e) => { e.stopPropagation(); handleDelete(editingRowId); }} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"><Trash className="w-4 h-4" /> Delete</button>
-              <button onClick={() => handleSaveRow(editingRowId)} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Save Changes</button>
+              {canDelete && <button onClick={(e) => { e.stopPropagation(); handleDelete(editingRowId); }} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"><Trash className="w-4 h-4" /> Delete</button>}
+              {canEdit && <button onClick={() => handleSaveRow(editingRowId)} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Save Changes</button>}
             </div>
           </div>
         </div>

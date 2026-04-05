@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   UserIcon,
   PlusIcon,
@@ -7,11 +7,13 @@ import {
   XMarkIcon,
   PhoneIcon,
   EnvelopeIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  ArrowUpTrayIcon
 } from "@heroicons/react/24/outline";
 import EditUserModal from "./EditUserModal";
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
+import { importFromExcel } from "../../utils/importUtils";
 
 export default function UserCategories() {
   const [categories, setCategories] = useState([]);
@@ -99,6 +101,39 @@ export default function UserCategories() {
   // 2️⃣ HANDLERS
   // ──────────────────────────────────────────────
 
+  const fileInputRef = useRef(null);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCategory) return;
+
+    try {
+      const data = await importFromExcel(file);
+      const newItems = data.map((row, index) => {
+        return {
+          id: `TEMP-${Date.now()}-${index}`,
+          username: row["Name"] || row["Username"] || "",
+          email: row["Email"] || "",
+          phone_number: row["Phone"] || "",
+          department: row["Department"] || "",
+          role_id: selectedCategory.key // Set role to current category
+        };
+      });
+
+      setUsersByCategory(prev => ({
+        ...prev,
+        [selectedCategory.key]: [...newItems, ...(prev[selectedCategory.key] || [])]
+      }));
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("Failed to import file.");
+    } finally {
+      if (fileInputRef.current) {
+         fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -174,22 +209,37 @@ export default function UserCategories() {
 
   const handleSaveUser = async (updatedUser) => {
     try {
-      await api.put(`/users/${updatedUser.id}/update/`, {
-        username: updatedUser.username,
-        email: updatedUser.email,
-        phone_number: updatedUser.phone_number,
-        department: updatedUser.department,
-      });
-
-      if (updatedUser.role_id !== undefined) {
-        await api.put(`/users/${updatedUser.id}/assign-role/`, {
-          role_id: updatedUser.role_id
+      const isTemp = updatedUser.id && String(updatedUser.id).startsWith("TEMP-");
+      if (isTemp) {
+        const tempPassword = Math.random().toString(36).slice(-8) + "Aa1!";
+        const payload = {
+          username: updatedUser.username,
+          email: updatedUser.email,
+          phone_number: updatedUser.phone_number,
+          department: updatedUser.department,
+          password: tempPassword,
+          role_id: updatedUser.role_id !== undefined ? updatedUser.role_id : selectedCategory.key
+        };
+        await api.post('/users/create-with-role/', payload);
+        alert(`Created ${updatedUser.username}! Temp Password is: ${tempPassword}`);
+      } else {
+        await api.put(`/users/${updatedUser.id}/update/`, {
+          username: updatedUser.username,
+          email: updatedUser.email,
+          phone_number: updatedUser.phone_number,
+          department: updatedUser.department,
         });
+
+        if (updatedUser.role_id !== undefined) {
+          await api.put(`/users/${updatedUser.id}/assign-role/`, {
+            role_id: updatedUser.role_id
+          });
+        }
+        alert("Updated.");
       }
       setSelectedUser(null);
       fetchData();
-      alert("Updated.");
-    } catch (err) { alert("Failed to update."); }
+    } catch (err) { alert("Failed to save."); }
   };
 
   const handleRevokePermissions = async (userId) => {
@@ -285,8 +335,18 @@ export default function UserCategories() {
               <h2 className="text-base font-bold text-gray-800">{selectedCategory.label}</h2>
             </div>
             <div className="flex gap-2">
+              <input 
+                type="file" 
+                accept=".xlsx, .xls, .csv" 
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={handleImport}
+              />
+              <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-xs font-bold hover:bg-green-100 flex items-center gap-1 shadow-sm">
+                <ArrowUpTrayIcon className="h-3 w-3" /> Import
+              </button>
               <button onClick={handleExport} className="px-3 py-1.5 rounded-md bg-white border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-50 flex items-center gap-1 shadow-sm">
-                Export
+                <ArrowUpTrayIcon className="h-3 w-3" /> Export
               </button>
               <button onClick={() => setShowAddUserForm(true)} className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
                 <PlusIcon className="h-3 w-3" /> Add User

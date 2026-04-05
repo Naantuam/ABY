@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Download, Trash2, Plus, Edit, X, Calendar,
-  AlertCircle, Search, Filter, Hash, ChevronDown, MapPin
+  AlertCircle, Search, Filter, Hash, ChevronDown, MapPin, Upload
 } from "lucide-react";
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
+import { importFromExcel } from "../../utils/importUtils";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function IncidentList() {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const canEdit = true;
+  const { canAdd, canEdit, canDelete } = usePermissions('safety');
 
   // ────────────────────────────────
   // 1️⃣ Fetch Data (GET)
@@ -149,6 +151,39 @@ export default function IncidentList() {
     exportToExcel(exportData, "Incidents_List");
   };
 
+  const fileInputRef = useRef(null);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromExcel(file);
+      const newItems = data.map((row, index) => {
+        return {
+          id: `TEMP-${Date.now()}-${index}`,
+          incident_date: row["Date"] || new Date().toISOString().split("T")[0],
+          project: row["Project"] || "",
+          description: row["Description"] || "",
+          severity: row["Severity"] || "low",
+          actions_taken: row["Actions Taken"] || "",
+          incident_status: row["Status"] || "reported",
+          location: "",
+          reported_by: null
+        };
+      });
+
+      setIncidents(prev => [...newItems, ...prev]);
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("Failed to import file.");
+    } finally {
+      if (fileInputRef.current) {
+         fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleAdd = () => {
     setEditing({
       incident_date: new Date().toISOString().slice(0, 10),
@@ -165,13 +200,21 @@ export default function IncidentList() {
   const handleSave = async () => {
     if (!editing) return;
     try {
-      if (editing.id) {
+      const isTemp = editing.id && String(editing.id).startsWith("TEMP-");
+      if (editing.id && !isTemp) {
         const response = await api.put(`/safety/safety-incidents/${editing.id}/`, editing);
         setIncidents((prev) => prev.map((inc) => (inc.id === editing.id ? response.data : inc)));
         alert("Incident updated successfully");
       } else {
-        const response = await api.post("/safety/safety-incidents/", editing);
-        setIncidents((prev) => [response.data, ...prev]);
+        const payload = { ...editing };
+        if (isTemp) delete payload.id;
+        
+        const response = await api.post("/safety/safety-incidents/", payload);
+        if (isTemp) {
+          setIncidents((prev) => prev.map((inc) => (inc.id === editing.id ? response.data : inc)));
+        } else {
+          setIncidents((prev) => [response.data, ...prev]);
+        }
         alert("Incident reported successfully");
       }
       setEditing(null);
@@ -247,6 +290,18 @@ export default function IncidentList() {
         </div>
 
         <div className="flex gap-2">
+          <input 
+            type="file" 
+            accept=".xlsx, .xls, .csv" 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleImport}
+          />
+          {canAdd && (
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 border px-3 py-2 rounded-lg bg-green-50 text-green-700 text-xs font-bold hover:bg-green-100 shadow-sm transition">
+              <Upload className="w-4 h-4" /> Import
+            </button>
+          )}
           <button onClick={handleExport} className="flex items-center gap-2 border px-3 py-2 rounded-lg bg-white text-gray-600 text-xs font-bold hover:bg-gray-50 shadow-sm transition">
             <Download className="w-4 h-4" /> Export
           </button>
@@ -326,9 +381,9 @@ export default function IncidentList() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={(e) => handleDelete(incident.id, e)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600 transition">
+                      {canDelete && <button onClick={(e) => handleDelete(incident.id, e)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600 transition">
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 ))
@@ -543,19 +598,19 @@ export default function IncidentList() {
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
-                <input type="date" value={editing.incident_date} onChange={(e) => setEditing({ ...editing, incident_date: e.target.value })} disabled={!canEdit} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
+                <input type="date" value={editing.incident_date} onChange={(e) => setEditing({ ...editing, incident_date: e.target.value })} disabled={editing.id ? !canEdit : !canAdd} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Location</label>
-                <input type="text" value={editing.location} onChange={(e) => setEditing({ ...editing, location: e.target.value })} disabled={!canEdit} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
+                <input type="text" value={editing.location} onChange={(e) => setEditing({ ...editing, location: e.target.value })} disabled={editing.id ? !canEdit : !canAdd} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Project</label>
-                <input type="text" value={editing.project} onChange={(e) => setEditing({ ...editing, project: e.target.value })} disabled={!canEdit} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
+                <input type="text" value={editing.project} onChange={(e) => setEditing({ ...editing, project: e.target.value })} disabled={editing.id ? !canEdit : !canAdd} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Severity</label>
-                <select value={editing.severity} onChange={(e) => setEditing({ ...editing, severity: e.target.value })} disabled={!canEdit} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:border-blue-500 transition-colors">
+                <select value={editing.severity} onChange={(e) => setEditing({ ...editing, severity: e.target.value })} disabled={editing.id ? !canEdit : !canAdd} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:border-blue-500 transition-colors">
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="critical">Critical</option>
@@ -563,16 +618,16 @@ export default function IncidentList() {
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description</label>
-                <textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} disabled={!canEdit} rows="3" className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
+                <textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} disabled={editing.id ? !canEdit : !canAdd} rows="3" className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Actions Taken</label>
-                <textarea value={editing.actions_taken || ""} onChange={(e) => setEditing({ ...editing, actions_taken: e.target.value })} disabled={!canEdit} rows="2" className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
+                <textarea value={editing.actions_taken || ""} onChange={(e) => setEditing({ ...editing, actions_taken: e.target.value })} disabled={editing.id ? !canEdit : !canAdd} rows="2" className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors" />
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                <select value={editing.incident_status} onChange={(e) => setEditing({ ...editing, incident_status: e.target.value })} disabled={!canEdit} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:border-blue-500 transition-colors capitalize">
+                <select value={editing.incident_status} onChange={(e) => setEditing({ ...editing, incident_status: e.target.value })} disabled={editing.id ? !canEdit : !canAdd} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:border-blue-500 transition-colors capitalize">
                   <option value="reported">Reported</option>
                   <option value="resolving">Resolving</option>
                   <option value="resolved">Resolved</option>
@@ -581,8 +636,8 @@ export default function IncidentList() {
             </div>
 
             <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100 sticky bottom-0">
-              <button onClick={() => setEditing(null)} className="px-5 py-2 rounded-lg bg-white border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50 transition-colors">{canEdit ? "Cancel" : "Close"}</button>
-              {canEdit && <button onClick={handleSave} className="px-6 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95">Save Changes</button>}
+              <button onClick={() => setEditing(null)} className="px-5 py-2 rounded-lg bg-white border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50 transition-colors">{(editing && (editing.id ? canEdit : canAdd)) ? "Cancel" : "Close"}</button>
+              {(editing && (editing.id ? canEdit : canAdd)) && <button onClick={handleSave} className="px-6 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95">Save Changes</button>}
             </div>
           </div>
         </div>

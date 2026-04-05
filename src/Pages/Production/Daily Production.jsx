@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
-import { Download, Trash, Loader2, Search, Filter, X, Edit, Plus, Calendar, DollarSign, Check } from "lucide-react"; // Added Loader2
+import { useState, useEffect, useRef } from "react";
+import { Download, Trash, Loader2, Search, Filter, X, Edit, Plus, Calendar, DollarSign, Check, Upload } from "lucide-react"; // Added Loader2
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
+import { importFromExcel } from "../../utils/importUtils";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function DailyProduction() {
+  const { canAdd, canEdit, canDelete } = usePermissions('production');
   // Rates (internal numeric values)
   const FED_RATE = 150; // ₦ per tonne
   const STATE_RATE = 180; // ₦ per tonne
@@ -273,8 +276,42 @@ export default function DailyProduction() {
   };
 
 
-  // Add record
-  // Add record
+  const fileInputRef = useRef(null);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromExcel(file);
+      const newItems = data.map((row, index) => {
+        const trucks = row["Trucks"] || 0;
+        const derived = computeDerived(trucks);
+
+        return {
+          id: `temp-${Date.now()}-${index}`,
+          Date: row["Date"] || new Date().toISOString().split("T")[0],
+          Trucks: trucks,
+          Quantity: row["Quantity"] || derived.quantity,
+          FederalRoyalty: row["Federal Royalty"] || derived.federalRoyalty,
+          StateHaulage: row["State Haulage"] || derived.stateHaulage,
+          MoU: row["MoU"] || derived.mou,
+          Total: row["Total"] || derived.total,
+          Remarks: row["Remarks"] === "None" ? "" : (row["Remarks"] || ""),
+        };
+      });
+
+      setItems(prev => [...newItems, ...prev]);
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("Failed to import file.");
+    } finally {
+      if (fileInputRef.current) {
+         fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleAddRow = () => {
     // Use a temporary ID for new rows
     const newId = `temp-${Date.now()}`;
@@ -449,12 +486,14 @@ export default function DailyProduction() {
           </button>
 
           {/* Add Trigger (Mobile) */}
-          <button
-            onClick={handleAddRow}
-            className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          {canAdd && (
+            <button
+              onClick={handleAddRow}
+              className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -465,8 +504,16 @@ export default function DailyProduction() {
           <p className="text-xs text-gray-500">Track trucks, haulage, and royalties</p>
         </div>
         <div className="flex gap-2">
+          <input 
+            type="file" 
+            accept=".xlsx, .xls, .csv" 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleImport}
+          />
+          {canAdd && <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 border px-3 py-2 bg-green-50 text-green-700 text-xs font-medium rounded-lg hover:bg-green-100 shadow-sm"><Upload className="w-4 h-4" /> Import</button>}
           <button onClick={handleExport} className="flex items-center gap-1 border px-3 py-2 bg-white text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 shadow-sm"><Download className="w-4 h-4" /> Export</button>
-          <button onClick={handleAddRow} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-sm active:scale-95"><Plus className="w-4 h-4" /> Add Record</button>
+          {canAdd && <button onClick={handleAddRow} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-sm active:scale-95"><Plus className="w-4 h-4" /> Add Record</button>}
         </div>
       </div>
 
@@ -516,13 +563,13 @@ export default function DailyProduction() {
                   <td className="px-2 py-3 text-right flex justify-end gap-1">
                     {editingRowId === item.id ? (
                       <>
-                        <button onClick={() => handleSaveRow(item.id)} className="bg-green-500 text-white p-1.5 rounded hover:bg-green-600"><Check className="w-3.5 h-3.5" /></button>
+                        {(canEdit || String(item.id).startsWith("temp-")) && <button onClick={() => handleSaveRow(item.id)} className="bg-green-500 text-white p-1.5 rounded hover:bg-green-600"><Check className="w-3.5 h-3.5" /></button>}
                         <button onClick={() => { setEditingRowId(null); setOriginalItem(null); loadData(); }} className="bg-gray-300 text-gray-700 p-1.5 rounded hover:bg-gray-400"><X className="w-3.5 h-3.5" /></button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => { setEditingRowId(item.id); setOriginalItem(item); }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded"><Edit className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:bg-red-50 p-1.5 rounded"><Trash className="w-4 h-4" /></button>
+                        {canEdit && <button onClick={() => { setEditingRowId(item.id); setOriginalItem(item); }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded"><Edit className="w-4 h-4" /></button>}
+                        {canDelete && <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:bg-red-50 p-1.5 rounded"><Trash className="w-4 h-4" /></button>}
                       </>
                     )}
                   </td>
@@ -566,12 +613,12 @@ export default function DailyProduction() {
 
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                <button
+                {canDelete && <button
                   onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                   className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg"
                 >
                   <Trash className="w-3 h-3" /> Delete
-                </button>
+                </button>}
               </div>
             </div>
           ))}
@@ -596,9 +643,10 @@ export default function DailyProduction() {
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Date</label>
                   <input
                     type="date"
+                    disabled={!(canEdit || String(editingRowId).startsWith("temp-"))}
                     value={items.find(it => it.id === editingRowId)?.Date || ""}
                     onChange={(e) => handleFieldChange(editingRowId, "Date", e.target.value)}
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50"
                   />
                 </div>
 
@@ -607,9 +655,10 @@ export default function DailyProduction() {
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Trucks</label>
                   <input
                     type="number"
+                    disabled={!(canEdit || String(editingRowId).startsWith("temp-"))}
                     value={items.find(it => it.id === editingRowId)?.Trucks || 0}
                     onChange={(e) => handleFieldChange(editingRowId, "Trucks", e.target.value)}
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50"
                   />
                 </div>
 
@@ -650,9 +699,10 @@ export default function DailyProduction() {
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Remarks</label>
                   <select
+                    disabled={!(canEdit || String(editingRowId).startsWith("temp-"))}
                     value={items.find(it => it.id === editingRowId)?.Remarks || ""}
                     onChange={(e) => handleFieldChange(editingRowId, "Remarks", e.target.value)}
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50"
                   >
                     <option value="">Select Status</option>
                     <option value="Paid">Paid</option>
@@ -662,8 +712,12 @@ export default function DailyProduction() {
               </div>
 
               <div className="flex gap-3 mt-8 pt-4 border-t border-gray-100">
-                <button onClick={(e) => { e.stopPropagation(); handleDelete(editingRowId); }} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"><Trash className="w-4 h-4" /> Delete</button>
-                <button onClick={() => handleSaveRow(editingRowId)} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Save Changes</button>
+                {canDelete && <button onClick={(e) => { e.stopPropagation(); handleDelete(editingRowId); }} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"><Trash className="w-4 h-4" /> Delete</button>}
+                {(canEdit || String(editingRowId).startsWith("temp-")) ? (
+                  <button onClick={() => handleSaveRow(editingRowId)} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Save Changes</button>
+                ) : (
+                  <button onClick={() => { setEditingRowId(null); setOriginalItem(null); loadData(); }} className="flex-[2] py-3 bg-gray-200 text-gray-700 font-bold rounded-xl flex items-center justify-center gap-2"><X className="w-4 h-4" /> Close</button>
+                )}
               </div>
             </div>
           </div>

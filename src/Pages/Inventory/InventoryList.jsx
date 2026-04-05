@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
-import { Download, Trash, Loader2, Search, Filter, X, Edit, Check, Plus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Download, Trash, Loader2, Search, Filter, X, Edit, Check, Plus, Upload } from "lucide-react";
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
+import { importFromExcel } from "../../utils/importUtils";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function InventoryList() {
+  const { canAdd, canEdit, canDelete } = usePermissions('inventory');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,6 +168,37 @@ export default function InventoryList() {
     exportToExcel(exportData, "inventory_list");
   };
 
+  const fileInputRef = useRef(null);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await importFromExcel(file);
+      const newItems = data.map((row, index) => {
+        return {
+          id: `TEMP-${Date.now()}-${index}`,
+          name: row["Item Name"] || row["Name"] || "",
+          category: row["Category"] || "Uncategorized",
+          quantity: row["Quantity"] || 0,
+          unit: row["Unit"] || "pcs",
+          lastUpdated: row["Last Updated"] || new Date().toISOString().split('T')[0],
+          status: row["Status"] ? String(row["Status"]).toLowerCase().replace(/ /g, "_") : "good"
+        };
+      });
+
+      setItems(prev => [...newItems, ...prev]);
+    } catch (err) {
+      console.error("Import error:", err);
+      alert("Failed to import file.");
+    } finally {
+      if (fileInputRef.current) {
+         fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleAddItem = () => {
     const newItem = {
       id: `TEMP-${Date.now()}`, // temporary unique id
@@ -228,7 +262,8 @@ export default function InventoryList() {
       console.log("📤 Sending Inventory Payload:", payload);
 
       try {
-        if (id.toString().startsWith("TEMP-")) {
+        const isTemp = id.toString().startsWith("TEMP-");
+        if (isTemp) {
           // Create
           const response = await api.post("/inventory/items/", payload);
           const newItem = response.data;
@@ -337,32 +372,49 @@ export default function InventoryList() {
           </button>
 
           {/* Add Trigger (Mobile) */}
-          <button
-            onClick={handleAddItem}
-            className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          {canAdd && (
+            <button
+              onClick={handleAddItem}
+              className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Header (Desktop) */}
       <div className="hidden lg:flex justify-between items-center mb-4">
         {/* Add New Item */}
-        <button
-          onClick={handleAddItem}
-          className="bg-blue-600 text-white text-sm px-2 py-2 rounded-lg hover:bg-blue-700"
-        >
-          + Add Item
-        </button>
+        {canAdd ? (
+          <button
+            onClick={handleAddItem}
+            className="bg-blue-600 text-white text-sm px-2 py-2 rounded-lg hover:bg-blue-700"
+          >
+            + Add Item
+          </button>
+        ) : <div />}
 
-        {/* Export Button */}
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-1 border px-1 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-        >
-          <Download className="w-4 h-4" />
-        </button>
+        <div className="flex gap-2">
+          <input 
+            type="file" 
+            accept=".xlsx, .xls, .csv" 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleImport}
+          />
+          {canAdd && (
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 border px-2 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-bold hover:bg-green-100 shadow-sm transition">
+              <Upload className="w-4 h-4" />
+            </button>
+          )}
+          {/* Export Button */}
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1 border px-2 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Table (Desktop) */}
@@ -555,29 +607,37 @@ export default function InventoryList() {
                 <td className="px-2 py-2 flex gap-1">
                   {editingRowId === item.id ? (
                     <>
-                      <button
+                      {canEdit && <button
                         onClick={() => handleSaveRow(item.id)}
                         className="bg-green-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-green-600"
                       >
                         Save
-                      </button>
+                      </button>}
                       <button
+                        onClick={() => { setEditingRowId(null); setOriginalItem(null); loadData(); }}
+                        className="bg-gray-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-gray-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {canEdit && <button
+                        onClick={() => {
+                          setEditingRowId(item.id);
+                          setOriginalItem(item);
+                        }}
+                        className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
+                      >
+                        Edit
+                      </button>}
+                      {canDelete && <button
                         onClick={() => handleDelete(item.id)}
                         className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600"
                       >
                         <Trash className="w-3 h-3" />
-                      </button>
+                      </button>}
                     </>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setEditingRowId(item.id);
-                        setOriginalItem(item);
-                      }}
-                      className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-blue-600"
-                    >
-                      Edit
-                    </button>
                   )}
                 </td>
               </tr>
@@ -651,12 +711,12 @@ export default function InventoryList() {
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-              <button
+              {canDelete && <button
                 onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                 className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg"
               >
                 <Trash className="w-3 h-3" /> Delete
-              </button>
+              </button>}
             </div>
           </div>
         ))}

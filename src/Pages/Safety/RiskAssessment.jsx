@@ -1,12 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
    Download, Trash2, Plus, Edit, X, Calendar,
-   AlertTriangle, Search, Filter
+   AlertTriangle, Search, Filter, Upload
 } from "lucide-react";
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
+import { importFromExcel } from "../../utils/importUtils";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function RiskList() {
+   const { canAdd, canEdit, canDelete } = usePermissions('safety');
    const [risks, setRisks] = useState([]);
    const [loading, setLoading] = useState(true);
 
@@ -65,6 +68,40 @@ export default function RiskList() {
    // ────────────────────────────────
    // 4️⃣ Handlers
    // ────────────────────────────────
+   const fileInputRef = useRef(null);
+
+   const handleImport = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+         const data = await importFromExcel(file);
+         const newRisks = data.map((row, index) => {
+            return {
+               id: `TEMP-${Date.now()}-${index}`,
+               assessment_date: row["Assessment Date"] || new Date().toISOString().split("T")[0],
+               project: row["Project Name"] || row["Project"] || "",
+               hazard_type: row["Hazard Type"] || row["Hazard"] || "",
+               likelihood: row["Likelihood"] ? String(row["Likelihood"]).toLowerCase() : "low",
+               impact: row["Impact"] ? String(row["Impact"]).toLowerCase() : "minor",
+               status: row["Status"] ? String(row["Status"]).toLowerCase() : "reported",
+               mitigation_plan: "",
+               related_incident: null,
+               assessed_by: null
+            };
+         });
+
+         setRisks(prev => [...newRisks, ...prev]);
+      } catch (err) {
+         console.error("Import error:", err);
+         alert("Failed to import file.");
+      } finally {
+         if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+         }
+      }
+   };
+
    const handleAdd = () => {
       setLikelihood("low");
       setImpact("minor");
@@ -103,13 +140,18 @@ export default function RiskList() {
       };
 
       try {
-         if (editing.id) {
+         const isTemp = editing.id && String(editing.id).startsWith("TEMP-");
+         if (editing.id && !isTemp) {
             const response = await api.put(`/safety/risk-assessments/${editing.id}/`, payload);
             setRisks((prev) => prev.map((r) => (r.id === editing.id ? response.data : r)));
             alert("Risk Assessment Updated!");
          } else {
             const response = await api.post("/safety/risk-assessments/", payload);
-            setRisks((prev) => [response.data, ...prev]);
+            if (isTemp) {
+               setRisks((prev) => prev.map((r) => (r.id === editing.id ? response.data : r)));
+            } else {
+               setRisks((prev) => [response.data, ...prev]);
+            }
             alert("Risk Assessment Created!");
          }
          setEditing(null);
@@ -217,12 +259,14 @@ export default function RiskList() {
                </button>
 
                {/* Add Trigger (Mobile) */}
-               <button
-                  onClick={handleAdd}
-                  className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
-               >
-                  <Plus className="w-5 h-5" />
-               </button>
+               {canAdd && (
+                  <button
+                     onClick={handleAdd}
+                     className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+                  >
+                     <Plus className="w-5 h-5" />
+                  </button>
+               )}
             </div>
          </div>
 
@@ -233,8 +277,20 @@ export default function RiskList() {
                <p className="text-xs text-gray-500">Track and mitigate safety hazards</p>
             </div>
             <div className="flex gap-2">
+               <input 
+                  type="file" 
+                  accept=".xlsx, .xls, .csv" 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handleImport}
+               />
+               {canAdd && (
+                  <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 border px-3 py-2 bg-green-50 text-green-700 text-xs font-bold rounded-lg hover:bg-green-100 shadow-sm transition">
+                     <Upload className="w-4 h-4" /> Import
+                  </button>
+               )}
                <button onClick={handleExport} className="flex items-center gap-2 border px-3 py-2 rounded-lg bg-white text-gray-600 text-xs font-bold hover:bg-gray-50 shadow-sm transition"><Download className="w-4 h-4" /> Export</button>
-               <button onClick={handleAdd} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-xs font-bold shadow-sm transition active:scale-95"><Plus className="w-4 h-4" /> Add Risk</button>
+               {canAdd && <button onClick={handleAdd} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-xs font-bold shadow-sm transition active:scale-95"><Plus className="w-4 h-4" /> Add Risk</button>}
             </div>
          </div>
 
@@ -289,7 +345,7 @@ export default function RiskList() {
                            <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded border capitalize ${getRiskColor(r.impact)}`}>{r.impact}</span></td>
                            <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded border capitalize ${getStatusColor(r.status)}`}>{r.status}</span></td>
                            <td className="px-4 py-3 text-right">
-                              <button onClick={(e) => handleDelete(r.id, e)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>
+                              {canDelete && <button onClick={(e) => handleDelete(r.id, e)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>}
                            </td>
                         </tr>
                      ))}
@@ -315,7 +371,7 @@ export default function RiskList() {
                      </div>
                      <div className="flex justify-between items-center text-xs text-gray-400 border-t border-gray-100 pt-2">
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {r.assessment_date}</span>
-                        <button onClick={(e) => handleDelete(r.id, e)} className="text-red-500 font-medium flex items-center gap-1"><Trash2 className="w-3 h-3" /> Delete</button>
+                        {canDelete && <button onClick={(e) => handleDelete(r.id, e)} className="text-red-500 font-medium flex items-center gap-1"><Trash2 className="w-3 h-3" /> Delete</button>}
                      </div>
                   </div>
                ))}
@@ -461,17 +517,17 @@ export default function RiskList() {
                   <div className="p-6 overflow-y-auto space-y-4">
                      <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Project Name</label>
-                        <input className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 transition-colors" value={editing.project || ""} onChange={e => setEditing({ ...editing, project: e.target.value })} />
+                        <input disabled={!(canEdit || !editing.id || String(editing.id).startsWith("TEMP-"))} className="disabled:opacity-50 w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 transition-colors" value={editing.project || ""} onChange={e => setEditing({ ...editing, project: e.target.value })} />
                      </div>
 
                      <div className="grid grid-cols-2 gap-4">
                         <div>
                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
-                           <input type="date" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" value={editing.assessment_date || ""} onChange={e => setEditing({ ...editing, assessment_date: e.target.value })} />
+                           <input disabled={!(canEdit || !editing.id || String(editing.id).startsWith("TEMP-"))} type="date" className="disabled:opacity-50 w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" value={editing.assessment_date || ""} onChange={e => setEditing({ ...editing, assessment_date: e.target.value })} />
                         </div>
                         <div>
                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                           <select className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white outline-none capitalize" value={editing.status} onChange={e => setEditing({ ...editing, status: e.target.value })}>
+                           <select disabled={!(canEdit || !editing.id || String(editing.id).startsWith("TEMP-"))} className="disabled:opacity-50 w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white outline-none capitalize" value={editing.status} onChange={e => setEditing({ ...editing, status: e.target.value })}>
                               {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                            </select>
                         </div>
@@ -479,19 +535,19 @@ export default function RiskList() {
 
                      <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hazard Type</label>
-                        <input className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" value={editing.hazard_type || ""} onChange={e => setEditing({ ...editing, hazard_type: e.target.value })} />
+                        <input disabled={!(canEdit || !editing.id || String(editing.id).startsWith("TEMP-"))} className="disabled:opacity-50 w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500" value={editing.hazard_type || ""} onChange={e => setEditing({ ...editing, hazard_type: e.target.value })} />
                      </div>
 
                      <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <div>
                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Likelihood</label>
-                           <select className="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white capitalize outline-none" value={likelihood} onChange={e => setLikelihood(e.target.value)}>
+                           <select disabled={!(canEdit || !editing.id || String(editing.id).startsWith("TEMP-"))} className="disabled:opacity-50 w-full border border-gray-300 rounded-lg p-2 text-sm bg-white capitalize outline-none" value={likelihood} onChange={e => setLikelihood(e.target.value)}>
                               {LIKELIHOOD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                            </select>
                         </div>
                         <div>
                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Impact</label>
-                           <select className="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white capitalize outline-none" value={impact} onChange={e => setImpact(e.target.value)}>
+                           <select disabled={!(canEdit || !editing.id || String(editing.id).startsWith("TEMP-"))} className="disabled:opacity-50 w-full border border-gray-300 rounded-lg p-2 text-sm bg-white capitalize outline-none" value={impact} onChange={e => setImpact(e.target.value)}>
                               {IMPACT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                            </select>
                         </div>
@@ -499,13 +555,13 @@ export default function RiskList() {
 
                      <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mitigation Plan</label>
-                        <textarea className="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 min-h-[80px]" value={editing.mitigation_plan || ""} onChange={e => setEditing({ ...editing, mitigation_plan: e.target.value })} />
+                        <textarea disabled={!(canEdit || !editing.id || String(editing.id).startsWith("TEMP-"))} className="disabled:opacity-50 w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:border-blue-500 min-h-[80px]" value={editing.mitigation_plan || ""} onChange={e => setEditing({ ...editing, mitigation_plan: e.target.value })} />
                      </div>
                   </div>
 
                   <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3 shrink-0">
                      <button onClick={() => setEditing(null)} className="px-5 py-2 rounded-lg bg-white border border-gray-300 text-gray-600 text-xs font-bold hover:bg-gray-50">Cancel</button>
-                     <button onClick={handleSave} className="px-5 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-sm">Save Changes</button>
+                     {(canEdit || !editing.id || String(editing.id).startsWith("TEMP-")) && <button onClick={handleSave} className="px-5 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-sm">Save Changes</button>}
                   </div>
                </div>
             </div>
