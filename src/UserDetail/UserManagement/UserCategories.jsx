@@ -14,8 +14,10 @@ import EditUserModal from "./EditUserModal";
 import api from "../../api";
 import { exportToExcel } from "../../utils/exportUtils";
 import { importFromExcel } from "../../utils/importUtils";
+import { usePermissions } from "../../hooks/usePermissions";
 
 export default function UserCategories() {
+  const { canAdd, canEdit, canDelete } = usePermissions('users');
   const [categories, setCategories] = useState([]);
   const [usersByCategory, setUsersByCategory] = useState({});
   const [loading, setLoading] = useState(true);
@@ -136,6 +138,7 @@ export default function UserCategories() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    if (!canAdd) return alert("You don't have permission to add users.");
     const form = e.target;
     let roleToAssign = selectedCategory.key;
 
@@ -176,6 +179,7 @@ export default function UserCategories() {
   };
   // ✅ DELETE USER HANDLER
   const handleDeleteUser = async (userId) => {
+    if (!canDelete) return alert("You don't have permission to delete users.");
     if (!window.confirm("Are you sure you want to permanently delete this user?")) return;
 
     try {
@@ -197,6 +201,7 @@ export default function UserCategories() {
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
+    if (!canAdd) return alert("You don't have permission to add roles.");
     if (newCategory.trim()) {
       try {
         await api.post("/users/roles/create/", { name: newCategory.trim() });
@@ -208,9 +213,11 @@ export default function UserCategories() {
   };
 
   const handleSaveUser = async (updatedUser) => {
+    if (!canEdit && !updatedUser.id?.toString().startsWith('TEMP-')) return alert("You don't have permission to edit users.");
     try {
       const isTemp = updatedUser.id && String(updatedUser.id).startsWith("TEMP-");
       if (isTemp) {
+        if (!canAdd) return alert("You don't have permission to add users.");
         const tempPassword = Math.random().toString(36).slice(-8) + "Aa1!";
         const payload = {
           username: updatedUser.username,
@@ -313,13 +320,15 @@ export default function UserCategories() {
               </div>
             ))}
 
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center justify-center p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition-all gap-2"
-            >
-              <PlusIcon className="h-4 w-4" />
-              <span className="text-xs font-bold uppercase tracking-wide">Add Role</span>
-            </button>
+            {canAdd && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex items-center justify-center p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition-all gap-2"
+              >
+                <PlusIcon className="h-4 w-4" />
+                <span className="text-xs font-bold uppercase tracking-wide">Add Role</span>
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -342,15 +351,19 @@ export default function UserCategories() {
                 ref={fileInputRef}
                 onChange={handleImport}
               />
-              <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-xs font-bold hover:bg-green-100 flex items-center gap-1 shadow-sm">
-                <ArrowUpTrayIcon className="h-3 w-3" /> Import
-              </button>
+              {canAdd && (
+                <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-xs font-bold hover:bg-green-100 flex items-center gap-1 shadow-sm">
+                  <ArrowUpTrayIcon className="h-3 w-3" /> Import
+                </button>
+              )}
               <button onClick={handleExport} className="px-3 py-1.5 rounded-md bg-white border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-50 flex items-center gap-1 shadow-sm">
                 <ArrowUpTrayIcon className="h-3 w-3" /> Export
               </button>
-              <button onClick={() => setShowAddUserForm(true)} className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
-                <PlusIcon className="h-3 w-3" /> Add User
-              </button>
+              {canAdd && (
+                <button onClick={() => setShowAddUserForm(true)} className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 flex items-center gap-1 shadow-sm">
+                  <PlusIcon className="h-3 w-3" /> Add User
+                </button>
+              )}
             </div>
           </div>
 
@@ -449,6 +462,8 @@ export default function UserCategories() {
           handleSaveUser={handleSaveUser}
           handleRevokePermissions={handleRevokePermissions}
           handleDeleteUser={handleDeleteUser}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       )}
 

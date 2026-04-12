@@ -34,14 +34,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
     const hasAccess = (itemApp) => {
         if (!user) return false;
         if (user.is_superuser) return true;
-        
-        // Admin apps: Dashboard and User Management
-        // Visible to Project Manager (role === 0), superusers, or if they explicitly have "users" permissions
-        if (itemApp === 'admin_only') {
-            return user.role === 0 || (appPermissions?.['users'] && appPermissions['users'].some(perm => userPermIds.includes(perm.id)));
-        }
 
-        const modulePerms = appPermissions?.[itemApp] || [];
+        const roleId = Number(user.role);
+
+        if (roleId === 0 && (itemApp === 'admin_only' || itemApp === 'projects')) return true;
+        if (roleId === 1 && itemApp === 'safety') return true;
+        if (roleId === 2 && itemApp === 'inventory') return true;
+        if (roleId === 3 && itemApp === 'production') return true;
+        if (roleId === 4 && itemApp === 'equipment') return true;
+
+        // 2. Dynamic Checking via RolesAndPermissions.jsx
+        // 'admin_only' relies on the 'users' permissions module if not hardcoded
+        const permissionModule = itemApp === 'admin_only' ? 'users' : itemApp;
+        
+        const modulePerms = appPermissions?.[permissionModule] || [];
         
         // Find the specific "view" permission for this module
         const viewPerm = modulePerms.find(perm => perm.codename && perm.codename.includes('view'));

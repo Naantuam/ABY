@@ -97,6 +97,7 @@ export default function RolesAndPermissions() {
     }
 
     setSaving(true);
+    let targetIdForLogs = selectedRoleId;
     try {
       const role = roles.find(r => r.id === selectedRoleId);
       console.log("🔍 Found role object:", role);
@@ -121,6 +122,8 @@ export default function RolesAndPermissions() {
       } catch (lookupErr) {
         console.warn("⚠️ Could not fetch role details. Will attempt to use original ID.", lookupErr);
       }
+      
+      targetIdForLogs = targetId;
 
       const payload = {
         name: role.name, // Keep existing name
@@ -142,7 +145,17 @@ export default function RolesAndPermissions() {
       alert("Role updated successfully.");
     } catch (error) {
       console.error("❌ Save failed:", error);
-      alert(`Failed to save role: ${error.message || "Unknown error"}`);
+      const urlTried = `/api/users/roles/${targetIdForLogs}/update/`;
+      const errMsg = error.response ? JSON.stringify(error.response.data) : error.message;
+      alert(`Backend rejected it!
+      
+Attempted: PUT ${urlTried}
+Status: ${error.response?.status}
+Response Message: ${errMsg}
+
+This 404 means the backend Django server literally could not find the role ID ${targetIdForLogs} in its database. 
+
+Please show this EXACT alert to your backend partner. If they built "update/", then either their code is not deployed/running on this URL, or Role ${targetIdForLogs} doesn't actually exist in the DB.`);
     } finally {
       setSaving(false);
     }

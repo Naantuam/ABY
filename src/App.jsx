@@ -5,8 +5,10 @@ import Login from "./UserDetail/Login";
 import MFA from "./UserDetail/MFA";
 import ForgotPassword from "./UserDetail/ForgotPassword";
 import ActivateAccount from './UserDetail/ActivateAccount';
+import Unauthorized from "./Pages/Auth/Unauthorized";
 
 import Layout from "./Reusable/Layout";
+import ProtectedRoute from "./ProtectedRoute";
 
 import Dashboard from "./Pages/AdminDashboard/Dashboard";
 import UsersDashboard from "./UserDetail/UserManagement/UsersDashboard";
@@ -24,19 +26,20 @@ function App() {
       <Route path="/mfa" element={<MFA />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Main Pages with Unified Layout */}
       <Route element={<Layout />}>
-        {/* Dashboard */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* Dashboard - "admin_only" for base access */}
+        <Route path="/dashboard" element={<ProtectedRoute app="admin_only"><Dashboard /></ProtectedRoute>} />
 
         {/* Feature Modules */}
-        <Route path="/users" element={<UsersDashboard />} />
-        <Route path="/equipment" element={<EquipmentDashboard />} />
-        <Route path="/project" element={<ProjectDashboard />} />
-        <Route path="/inventory" element={<InventoryDashboard />} />
-        <Route path="/safety" element={<SafetyDashboard />} />
-        <Route path="/production" element={<ProductionDashboard />} />
+        <Route path="/users" element={<ProtectedRoute app="users"><UsersDashboard /></ProtectedRoute>} />
+        <Route path="/equipment" element={<ProtectedRoute app="equipment"><EquipmentDashboard /></ProtectedRoute>} />
+        <Route path="/project" element={<ProtectedRoute app="projects"><ProjectDashboard /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute app="inventory"><InventoryDashboard /></ProtectedRoute>} />
+        <Route path="/safety" element={<ProtectedRoute app="safety"><SafetyDashboard /></ProtectedRoute>} />
+        <Route path="/production" element={<ProtectedRoute app="production"><ProductionDashboard /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

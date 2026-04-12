@@ -16,6 +16,8 @@ export default function EditUserModal({
   setSelectedUser,
   handleSaveUser,
   handleDeleteUser,
+  canEdit = true,
+  canDelete = true,
 }) {
   if (!selectedUser) return null;
 
@@ -294,12 +296,16 @@ export default function EditUserModal({
 
         {/* ==== Footer ==== */}
         <div className="px-6 py-4 bg-white border-t border-gray-100 flex justify-between items-center sticky bottom-0">
-          <button
-            onClick={() => handleDeleteUser(editableUser.id)}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium hover:bg-red-50 px-3 py-2 rounded-lg transition-colors"
-          >
-            <TrashIcon className="w-4 h-4" /> Delete User
-          </button>
+          <div>
+            {canDelete && (
+              <button
+                onClick={() => handleDeleteUser(editableUser.id)}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium hover:bg-red-50 px-3 py-2 rounded-lg transition-colors"
+              >
+                <TrashIcon className="w-4 h-4" /> Delete User
+              </button>
+            )}
+          </div>
 
           <div className="flex gap-3">
             <button
@@ -308,12 +314,14 @@ export default function EditUserModal({
             >
               Cancel
             </button>
-            <button
-              onClick={() => handleSaveUser(editableUser)}
-              className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium shadow-lg shadow-blue-200 transition-all active:scale-95"
-            >
-              Save Changes
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => handleSaveUser(editableUser)}
+                className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium shadow-lg shadow-blue-200 transition-all active:scale-95"
+              >
+                Save Changes
+              </button>
+            )}
           </div>
         </div>
 

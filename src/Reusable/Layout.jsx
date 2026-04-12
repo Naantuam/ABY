@@ -93,7 +93,7 @@ export default function Layout() {
                     className={`flex-1 transition-all duration-300 ease-in-out overflow-x-auto ${sidebarOpen ? "md:ml-55" : "ml-0"
                         }`}
                 >
-                    <Outlet context={{ user, roles, appPermissions }} />
+                    <Outlet context={{ user, roles, appPermissions, loadingAuth }} />
                 </main>
             </div>
         </div>
