@@ -127,7 +127,8 @@ export default function RolesAndPermissions() {
 
       const payload = {
         name: role.name, // Keep existing name
-        permissions: editedRolePermissions
+        permissions: editedRolePermissions,
+        permission_ids: editedRolePermissions
       };
 
       console.log(`🚀 Sending PUT request to: /users/roles/${targetId}/update/`, payload);
