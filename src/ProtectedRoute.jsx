@@ -26,7 +26,7 @@ const ProtectedRoute = ({ children, app }) => {
       }
       
       if (!user) return <Navigate to="/" replace />;
-      if (user.is_superuser) return children;
+      if (user.superuser || user.is_superuser) return children;
 
       const userRole = roles?.find(r => r.id === user?.role);
       const userPermIds = userRole?.permissions || [];

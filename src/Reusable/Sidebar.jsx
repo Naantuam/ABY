@@ -33,7 +33,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
 
     const hasAccess = (itemApp) => {
         if (!user) return false;
-        if (user.is_superuser) return true;
+        if (user.superuser || user.is_superuser) return true;
 
         const roleId = Number(user.role);
 

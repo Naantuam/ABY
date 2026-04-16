@@ -25,7 +25,11 @@ export default function Layout() {
                 setUser(userRes.data);
                 
                 const rolesData = Array.isArray(rolesRes.data) ? rolesRes.data : (rolesRes.data.results || []);
-                setRoles(rolesData.map(r => ({ ...r, id: r.id ?? r.key, permissions: r.permissions || [] })));
+                setRoles(rolesData.map(r => {
+                    const rawPerms = r.permissions || r.role_permissions || r.rolemodulepermissions || r.rolemodulepermission_set || r.role_module_permissions || r.module_permissions || [];
+                    const parsedPermIds = rawPerms.map(p => typeof p === 'object' ? (p.access_level || p.permission || p.permission_id || p.id) : p);
+                    return { ...r, id: r.id ?? r.key, permissions: parsedPermIds };
+                }));
 
                 const newAppPermissions = {};
                 apps.forEach((app, index) => {

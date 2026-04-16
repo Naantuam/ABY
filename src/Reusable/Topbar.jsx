@@ -18,7 +18,7 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { },
 
   const roleObject = roles.find(r => r.id === user?.role);
   // Give priority to superuser label
-  const roleLabel = user?.is_superuser ? "Admin" 
+  const roleLabel = (user?.superuser || user?.is_superuser) ? "Admin" 
                     : (ROLE_MAP[user?.role] || (roleObject ? (roleObject.label ?? roleObject.name) : (user?.role || "Unknown Role")));
 
   return (

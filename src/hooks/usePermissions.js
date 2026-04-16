@@ -12,7 +12,7 @@ export function usePermissions(appName) {
     if (!user) return { canAdd: false, canEdit: false, canDelete: false, canView: false, isSuperuser: false };
     
     // Superuser overrides everything
-    if (user.is_superuser) return { canAdd: true, canEdit: true, canDelete: true, canView: true, isSuperuser: true };
+    if (user.superuser || user.is_superuser) return { canAdd: true, canEdit: true, canDelete: true, canView: true, isSuperuser: true };
 
     const userRole = roles?.find(r => r.id === user?.role);
     const userPermIds = userRole?.permissions || [];
@@ -40,6 +40,6 @@ export function usePermissions(appName) {
         canEdit: hasPermission('change'),
         canDelete: hasPermission('delete'),
         canView: hasPermission('view'),
-        isSuperuser: user.is_superuser
+        isSuperuser: (user.superuser || user.is_superuser)
     };
 }

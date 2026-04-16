@@ -35,16 +35,22 @@ export default function RolesAndPermissions() {
         // Backend returns: [{"key":0,"label":"Project Manager"}, ...]
         // We assume 'key' matches the ID used for fetching details/updates, 
         // OR we'll resolve the real ID later.
-        const rolesData = rolesDataRaw.map(r => ({
-          ...r,
-          id: r.id ?? r.key, // Use Key as the local ID (0, 1, 2...)
-          name: r.name ?? r.label,
-          permissions: r.permissions || []
-        }));
+        const rolesData = rolesDataRaw.map(r => {
+          const rawPerms = r.permissions || r.role_permissions || r.rolemodulepermissions || r.rolemodulepermission_set || r.role_module_permissions || r.module_permissions || [];
+          const parsedPermIds = rawPerms.map(p => typeof p === 'object' ? (p.access_level || p.permission || p.permission_id || p.id) : p);
+          
+          return {
+            ...r,
+            id: r.id ?? r.key, // Use Key as the local ID (0, 1, 2...)
+            name: r.name ?? r.label,
+            permissions: parsedPermIds
+          };
+        });
 
-        const permsData = permsResList.flatMap(res =>
-          Array.isArray(res.data) ? res.data : (res.data.results || [])
-        );
+        const permsData = permsResList.flatMap((res, index) => {
+          const rawData = Array.isArray(res.data) ? res.data : (res.data.results || []);
+          return rawData.map(p => ({ ...p, moduleName: apps[index] }));
+        });
 
         setRoles(rolesData);
         setPermissions(permsData);
@@ -125,10 +131,19 @@ export default function RolesAndPermissions() {
       
       targetIdForLogs = targetId;
 
+      const formattedPermissions = editedRolePermissions.map(permId => {
+        const fullPerm = permissions.find(p => p.id === permId);
+        return {
+          permission: permId, // Used by some serializers
+          access_level: permId, // This seems to be the actual DB column expected by this specific backend 
+          module: fullPerm ? fullPerm.moduleName : 'admin_only' // Safe fallback
+        };
+      });
+
       const payload = {
         name: role.name, // Keep existing name
-        permissions: editedRolePermissions,
-        permission_ids: editedRolePermissions
+        // The backend `users_rolemodulepermission` table explicitly requires `permission` and `module`
+        permissions: formattedPermissions
       };
 
       console.log(`🚀 Sending PUT request to: /users/roles/${targetId}/update/`, payload);
