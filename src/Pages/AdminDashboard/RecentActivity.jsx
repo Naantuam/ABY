@@ -82,20 +82,27 @@ export default function RecentActivity() {
         const response = await api.get("/activity/recent/");
         console.log("📜 Raw Activity Response:", response.data);
 
-        // Map API response to match UI structure based on provided JSON keys
         const mappedActivities = response.data
-          .map(item => ({
-            id: item.id,
-            // Handle 'projects' -> 'project' mapping explicitly as per JSON
-            type: (item.app_name === 'projects' ? 'project' : (item.app_name ? item.app_name.toLowerCase() : "project")),
-            title: `${item.model_name} ${item.action}`,
-            description: item.description,
-            time: getRelativeTime(item.created_at), // Use created_at for time
-            user: item.user ? item.user.trim() : "Unknown",
-            raw_id: item.id // keeping for sort stability
-          }))
+          .map(item => {
+            // Capitalize the action nicely
+            const actionStr = item.action ? (item.action.charAt(0).toUpperCase() + item.action.slice(1)) : '';
+            // Clean up the user string if it comes back with just parentheses e.g. "  (hivalnetwork@gmail.com)"
+            let cleanUser = item.user ? item.user.trim() : "System";
+            if (cleanUser.startsWith("(") && cleanUser.endsWith(")")) {
+              cleanUser = cleanUser.slice(1, -1);
+            }
+
+            return {
+              id: item.id,
+              type: (item.app_name === 'projects' ? 'project' : (item.app_name ? item.app_name.toLowerCase() : "project")),
+              title: `${item.model_name || 'System'} ${actionStr}`.trim(),
+              description: item.description || "No details provided.",
+              time: getRelativeTime(item.created_at),
+              user: cleanUser,
+              raw_id: item.id
+            };
+          })
           .sort((a, b) => {
-            // Sort by numeric ID descending (latest first)
             return Number(b.id) - Number(a.id);
           });
 

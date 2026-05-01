@@ -26,8 +26,17 @@ export default function Layout() {
                 
                 const rolesData = Array.isArray(rolesRes.data) ? rolesRes.data : (rolesRes.data.results || []);
                 setRoles(rolesData.map(r => {
-                    const rawPerms = r.permissions || r.role_permissions || r.rolemodulepermissions || r.rolemodulepermission_set || r.role_module_permissions || r.module_permissions || [];
-                    const parsedPermIds = rawPerms.map(p => typeof p === 'object' ? (p.access_level || p.permission || p.permission_id || p.id) : p);
+                    const rawPerms1 = r.role_permissions || [];
+                    const rawPerms2 = r.rolemodulepermissions || [];
+                    const rawPerms3 = r.rolemodulepermission_set || [];
+                    const rawPerms4 = r.role_module_permissions || [];
+                    const rawPerms5 = r.module_permissions || [];
+                    const rawPerms6 = r.permissions || [];
+                    const combined = [...rawPerms1, ...rawPerms2, ...rawPerms3, ...rawPerms4, ...rawPerms5, ...rawPerms6];
+                    const parsedPermIds = Array.from(new Set(combined.map(p => {
+                        let val = typeof p === 'object' && p !== null ? (p.access_level || p.permission || p.permission_id || p.id) : p;
+                        return Number(val);
+                    }).filter(id => !isNaN(id) && id !== 0 && id !== null)));
                     return { ...r, id: r.id ?? r.key, permissions: parsedPermIds };
                 }));
 

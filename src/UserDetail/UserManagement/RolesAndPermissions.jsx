@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import {
   Briefcase, Truck, Users, Archive, ShieldCheck,
-  Factory, Save, RotateCcw, Loader2, CheckCircle, XCircle
+  Factory, Save, RotateCcw, Loader2, CheckCircle, XCircle,
+  ChevronDown, ChevronUp
 } from "lucide-react";
 import api from "../../api";
 
@@ -12,6 +13,19 @@ export default function RolesAndPermissions() {
   const [editedRolePermissions, setEditedRolePermissions] = useState([]); // IDs of permissions for selected role
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState({}); // Track expanded accordions
+
+  const toggleGroupExpansion = (groupName) => {
+    setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
+  };
+
+  const handleToggleGroupAll = (groupPermIds, isChecked) => {
+    if (isChecked) {
+      setEditedRolePermissions(prev => Array.from(new Set([...prev, ...groupPermIds])));
+    } else {
+      setEditedRolePermissions(prev => prev.filter(id => !groupPermIds.includes(id)));
+    }
+  };
 
   // ────────────────────────────────
   // 1️⃣ Fetch Data
@@ -31,17 +45,23 @@ export default function RolesAndPermissions() {
 
         const rolesDataRaw = Array.isArray(rolesRes.data) ? rolesRes.data : (rolesRes.data.results || []);
 
-        // Map keys to IDs for the frontend
-        // Backend returns: [{"key":0,"label":"Project Manager"}, ...]
-        // We assume 'key' matches the ID used for fetching details/updates, 
-        // OR we'll resolve the real ID later.
+        // Basic role info mapping with fallback permissions parsing
         const rolesData = rolesDataRaw.map(r => {
-          const rawPerms = r.permissions || r.role_permissions || r.rolemodulepermissions || r.rolemodulepermission_set || r.role_module_permissions || r.module_permissions || [];
-          const parsedPermIds = rawPerms.map(p => typeof p === 'object' ? (p.access_level || p.permission || p.permission_id || p.id) : p);
-          
+          const rawPerms1 = r.role_permissions || [];
+          const rawPerms2 = r.rolemodulepermissions || [];
+          const rawPerms3 = r.rolemodulepermission_set || [];
+          const rawPerms4 = r.role_module_permissions || [];
+          const rawPerms5 = r.module_permissions || [];
+          const rawPerms6 = r.permissions || [];
+          const combined = [...rawPerms1, ...rawPerms2, ...rawPerms3, ...rawPerms4, ...rawPerms5, ...rawPerms6];
+          const parsedPermIds = Array.from(new Set(combined.map(p => {
+              let val = typeof p === 'object' && p !== null ? (p.permission || p.permission_id || p.id || p.access_level) : p;
+              return Number(val);
+          }).filter(id => !isNaN(id) && id !== 0 && id !== null)));
+
           return {
             ...r,
-            id: r.id ?? r.key, // Use Key as the local ID (0, 1, 2...)
+            id: r.id ?? r.key,
             name: r.name ?? r.label,
             permissions: parsedPermIds
           };
@@ -57,8 +77,9 @@ export default function RolesAndPermissions() {
 
         // Select first role by default
         if (rolesData.length > 0) {
-          setSelectedRoleId(rolesData[0].id);
-          setEditedRolePermissions(rolesData[0].permissions || []);
+          const initialRoleId = rolesData[0].id;
+          setSelectedRoleId(initialRoleId);
+          await fetchRolePermissions(initialRoleId, rolesData);
         }
 
       } catch (error) {
@@ -72,11 +93,29 @@ export default function RolesAndPermissions() {
     fetchAll();
   }, []);
 
+  const fetchRolePermissions = async (roleId, currentRoles = roles) => {
+    try {
+      const res = await api.get(`/users/roles/${roleId}/`);
+      const data = res.data;
+      const dbPermissions = data.permissions || [];
+      // Extract the actual permission IDs from the detailed response
+      const permIds = dbPermissions.map(p => p.permission || p.id || p.permission_id);
+      setEditedRolePermissions(permIds.filter(id => id != null));
+    } catch (error) {
+      console.error(`Failed to fetch permissions for role ${roleId} (likely backend 404). Falling back to cached list.`, error);
+      // Fallback: if the detailed route fails, grab from the main list so we don't end up empty
+      const fallbackRole = currentRoles.find(r => r.id === roleId);
+      if (fallbackRole && fallbackRole.permissions) {
+        setEditedRolePermissions(fallbackRole.permissions);
+      }
+    }
+  };
+
   // Sync state when switching roles
-  const handleRoleSelect = (roleId) => {
+  const handleRoleSelect = async (roleId) => {
     setSelectedRoleId(roleId);
-    const role = roles.find(r => r.id === roleId);
-    setEditedRolePermissions(role ? (role.permissions || []) : []);
+    setEditedRolePermissions([]); // clear temporarily while loading
+    await fetchRolePermissions(roleId);
   };
 
   // ────────────────────────────────
@@ -133,30 +172,46 @@ export default function RolesAndPermissions() {
 
       const formattedPermissions = editedRolePermissions.map(permId => {
         const fullPerm = permissions.find(p => p.id === permId);
+        
+        // Derive access_level from codename (e.g., 'change_user' -> 'edit')
+        let accessLevel = "view";
+        if (fullPerm && fullPerm.codename) {
+          const prefix = fullPerm.codename.split('_')[0];
+          if (prefix === 'change') accessLevel = 'edit';
+          else if (['add', 'delete', 'view'].includes(prefix)) accessLevel = prefix;
+        }
+
         return {
-          permission: permId, // Used by some serializers
-          access_level: permId, // This seems to be the actual DB column expected by this specific backend 
+          permission: permId, // The ID of the permission
+          access_level: accessLevel, 
           module: fullPerm ? fullPerm.moduleName : 'admin_only' // Safe fallback
         };
       });
 
       const payload = {
         name: role.name, // Keep existing name
-        // The backend `users_rolemodulepermission` table explicitly requires `permission` and `module`
         permissions: formattedPermissions
       };
 
-      console.log(`🚀 Sending PUT request to: /users/roles/${targetId}/update/`, payload);
+      console.group("🚀 [DEBUG FOR BACKEND: PAYLOAD SECURELY SENT]");
+      console.log(`Sending PUT request to: /users/roles/${targetId}/update/`);
+      console.log(`Total permissions sent: ${formattedPermissions.length}`);
+      console.log(JSON.stringify(payload.permissions, null, 2));
+      console.groupEnd();
 
       // PUT /api/users/roles/<id>/update/
       await api.put(`/users/roles/${targetId}/update/`, payload);
 
       console.log("✅ Save success!");
 
-      // Update local state to reflect saved changes as "current"
-      setRoles(prev => prev.map(r =>
-        r.id === selectedRoleId ? { ...r, permissions: editedRolePermissions } : r
-      ));
+      // Optimistically update the roles cache so the fallback works if GET 404s
+      const updatedRoles = roles.map(r =>
+        r.id === targetId ? { ...r, permissions: editedRolePermissions } : r
+      );
+      setRoles(updatedRoles);
+
+      // 🔍 VERIFICATION LOG: Re-fetch the detailed role to hydrate checkboxes
+      await fetchRolePermissions(targetId, updatedRoles);
 
       alert("Role updated successfully.");
     } catch (error) {
@@ -178,9 +233,8 @@ Please show this EXACT alert to your backend partner. If they built "update/", t
   };
 
   const handleReset = () => {
-    const role = roles.find(r => r.id === selectedRoleId);
-    if (role) {
-      setEditedRolePermissions(role.permissions || []);
+    if (selectedRoleId !== null) {
+      fetchRolePermissions(selectedRoleId);
     }
   };
 
@@ -299,43 +353,76 @@ Please show this EXACT alert to your backend partner. If they built "update/", t
 
         {/* Permissions Grid */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-white">
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
 
-            {Object.keys(groupedPermissions).sort().map(group => (
-              <div key={group} className="break-inside-avoid bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <h4 className="font-bold text-gray-800 text-sm mb-3 border-b border-gray-200 pb-2 capitalize">
-                  {group}
-                </h4>
-                <div className="space-y-2">
-                  {groupedPermissions[group].map(perm => {
-                    const isChecked = editedRolePermissions.includes(perm.id);
-                    return (
-                      <label
-                        key={perm.id}
-                        className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors ${isChecked ? "bg-white shadow-sm border border-blue-100" : "hover:bg-gray-200/50"
-                          }`}
+            {Object.keys(groupedPermissions).sort().map(group => {
+              const groupPerms = groupedPermissions[group];
+              const groupPermIds = groupPerms.map(p => p.id);
+              const isAllChecked = groupPermIds.every(id => editedRolePermissions.includes(id));
+              const isExpanded = expandedGroups[group];
+
+              return (
+                <div key={group} className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                  {/* Group Header (Accordion Toggle + Select All) */}
+                  <div className="flex items-center justify-between bg-white px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={isAllChecked}
+                          onChange={(e) => handleToggleGroupAll(groupPermIds, e.target.checked)}
+                          className="peer h-4 w-4 appearance-none rounded border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                        />
+                        <CheckCircle className="absolute w-4 h-4 text-white opacity-0 peer-checked:opacity-100 pointer-events-none p-0.5" />
+                      </div>
+                      <h4 
+                        className="font-bold text-gray-800 text-sm capitalize cursor-pointer select-none line-clamp-1" 
+                        onClick={() => toggleGroupExpansion(group)}
                       >
-                        <div className="relative flex items-center mt-0.5">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleTogglePermission(perm.id)}
-                            className="peer h-4 w-4 appearance-none rounded border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
-                          <CheckCircle className="absolute w-4 h-4 text-white opacity-0 peer-checked:opacity-100 pointer-events-none p-0.5" />
-                        </div>
-                        <div className="flex-1">
-                          <p className={`text-xs font-medium ${isChecked ? "text-gray-900" : "text-gray-600"}`}>
-                            {formatPermissionName(perm.codename)}
-                          </p>
-                          {/* <p className="text-[10px] text-gray-400 font-mono mt-0.5">{perm.codename}</p> */}
-                        </div>
-                      </label>
-                    );
-                  })}
+                        {group} <span className="text-gray-400 font-normal text-xs ml-1">({groupPerms.length})</span>
+                      </h4>
+                    </div>
+                    <button 
+                      onClick={() => toggleGroupExpansion(group)}
+                      className="p-1.5 flex-shrink-0 bg-gray-50 rounded-md text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                    >
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  {/* Group Content (Items) */}
+                  {isExpanded && (
+                    <div className="p-4 space-y-2 bg-gray-50">
+                      {groupPerms.map(perm => {
+                        const isChecked = editedRolePermissions.includes(perm.id);
+                        return (
+                          <label
+                            key={perm.id}
+                            className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors ${isChecked ? "bg-white shadow-sm border border-blue-100" : "hover:bg-gray-200/50"
+                              }`}
+                          >
+                            <div className="relative flex items-center mt-0.5">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleTogglePermission(perm.id)}
+                                className="peer h-4 w-4 appearance-none rounded border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                              />
+                              <CheckCircle className="absolute w-4 h-4 text-white opacity-0 peer-checked:opacity-100 pointer-events-none p-0.5" />
+                            </div>
+                            <div className="flex-1">
+                              <p className={`text-xs font-medium ${isChecked ? "text-gray-900" : "text-gray-600"}`}>
+                                {formatPermissionName(perm.codename)}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
           </div>
         </div>

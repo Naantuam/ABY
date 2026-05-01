@@ -26,7 +26,7 @@ export default function MaintenanceList() {
   const fetchMaintenance = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/maintenance/");
+      const response = await api.get("production/maintenance/");
       const data = response.data;
       const results = Array.isArray(data) ? data : (data.results || []);
       setItems(results.map(mapRecordToFrontend));
@@ -203,7 +203,7 @@ export default function MaintenanceList() {
       alert("Failed to import file.");
     } finally {
       if (fileInputRef.current) {
-         fileInputRef.current.value = "";
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -276,12 +276,12 @@ export default function MaintenanceList() {
       try {
         if (String(id).startsWith("TEMP-")) {
           // CREATE
-          const response = await api.post("/maintenance/", payload);
+          const response = await api.post("production/maintenance/", payload);
           const savedItem = mapRecordToFrontend(response.data);
           setItems(prev => prev.map(it => it.id === id ? savedItem : it));
         } else {
           // UPDATE
-          const response = await api.put(`/maintenance/${id}/`, payload);
+          const response = await api.put(`production/maintenance/${id}/`, payload);
           const savedItem = mapRecordToFrontend(response.data);
           setItems(prev => prev.map(it => it.id === id ? savedItem : it));
         }
@@ -296,7 +296,7 @@ export default function MaintenanceList() {
       const id = pendingAction.id;
       try {
         if (!String(id).startsWith("TEMP-")) {
-          await api.delete(`/maintenance/${id}/`);
+          await api.delete(`production/maintenance/${id}/`);
         }
         setItems((prev) => prev.filter((it) => it.id !== id));
       } catch (err) {
@@ -386,10 +386,10 @@ export default function MaintenanceList() {
         ) : <div />}
 
         <div className="flex gap-2">
-          <input 
-            type="file" 
-            accept=".xlsx, .xls, .csv" 
-            className="hidden" 
+          <input
+            type="file"
+            accept=".xlsx, .xls, .csv"
+            className="hidden"
             ref={fileInputRef}
             onChange={handleImport}
           />

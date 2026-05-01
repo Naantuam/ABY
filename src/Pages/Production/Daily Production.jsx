@@ -59,7 +59,7 @@ export default function DailyProduction() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/production/");
+      const response = await api.get("production/daily_production/");
       const data = response.data;
       // Ensure data is array
       const arr = Array.isArray(data) ? data : (data.results || []);
@@ -307,7 +307,7 @@ export default function DailyProduction() {
       alert("Failed to import file.");
     } finally {
       if (fileInputRef.current) {
-         fileInputRef.current.value = "";
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -394,7 +394,7 @@ export default function DailyProduction() {
       try {
         if (id.toString().startsWith("temp-")) {
           // CREATE
-          const response = await api.post("/production/", payload);
+          const response = await api.post("production/daily_production/", payload);
           const formatted = mapRecordToFrontend(response.data);
           // Replace temp item with real item
           setItems((prev) =>
@@ -402,7 +402,7 @@ export default function DailyProduction() {
           );
         } else {
           // UPDATE
-          const response = await api.put(`/production/${id}/`, payload);
+          const response = await api.put(`production/daily_production/${id}/`, payload);
           const formatted = mapRecordToFrontend(response.data);
           setItems((prev) =>
             prev.map((it) => (it.id === id ? formatted : it))
@@ -419,7 +419,7 @@ export default function DailyProduction() {
     } else if (pendingAction.type === "delete") {
       try {
         if (!id.toString().startsWith("temp-")) {
-          await api.delete(`/production/${id}/`);
+          await api.delete(`production/daily_production/${id}/`);
         }
         setItems((prev) => prev.filter((it) => it.id !== id));
       } catch (err) {
@@ -504,10 +504,10 @@ export default function DailyProduction() {
           <p className="text-xs text-gray-500">Track trucks, haulage, and royalties</p>
         </div>
         <div className="flex gap-2">
-          <input 
-            type="file" 
-            accept=".xlsx, .xls, .csv" 
-            className="hidden" 
+          <input
+            type="file"
+            accept=".xlsx, .xls, .csv"
+            className="hidden"
             ref={fileInputRef}
             onChange={handleImport}
           />

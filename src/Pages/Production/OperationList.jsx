@@ -25,7 +25,7 @@ export default function OperationList() {
   const fetchOperations = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/operation/");
+      const response = await api.get("production/operations/");
       const data = response.data;
       const results = Array.isArray(data) ? data : (data.results || []);
       setItems(results.map(mapRecordToFrontend));
@@ -184,7 +184,7 @@ export default function OperationList() {
       alert("Failed to import file.");
     } finally {
       if (fileInputRef.current) {
-         fileInputRef.current.value = "";
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -253,12 +253,12 @@ export default function OperationList() {
       try {
         if (String(id).startsWith("TEMP-")) {
           // CREATE
-          const response = await api.post("/operation/", payload);
+          const response = await api.post("production/operations/", payload);
           const savedItem = mapRecordToFrontend(response.data);
           setItems(prev => prev.map(it => it.id === id ? savedItem : it));
         } else {
           // UPDATE
-          const response = await api.put(`/operation/${id}/`, payload);
+          const response = await api.put(`production/operations/${id}/`, payload);
           const savedItem = mapRecordToFrontend(response.data);
           setItems(prev => prev.map(it => it.id === id ? savedItem : it));
         }
@@ -276,7 +276,7 @@ export default function OperationList() {
       const id = pendingAction.id;
       try {
         if (!String(id).startsWith("TEMP-")) {
-          await api.delete(`/operation/${id}/`);
+          await api.delete(`production/operations/${id}/`);
         }
         setItems((prev) => prev.filter((it) => it.id !== id));
 
@@ -372,10 +372,10 @@ export default function OperationList() {
           ) : <div />}
 
           <div className="flex gap-2">
-            <input 
-              type="file" 
-              accept=".xlsx, .xls, .csv" 
-              className="hidden" 
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              className="hidden"
               ref={fileInputRef}
               onChange={handleImport}
             />
