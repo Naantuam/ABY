@@ -19,8 +19,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
     const location = useLocation();
 
     const navigation = [
-        { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon, app: 'admin_only' },
-        { name: 'User Management', href: '/users', icon: UsersIcon, app: 'admin_only' },
+        { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon, app: 'dashboard' },
+        { name: 'User Management', href: '/users', icon: UsersIcon, app: 'users' },
         { name: 'Equipment Management', href: '/equipment', icon: BriefcaseIcon, app: 'equipment' },
         { name: 'Project Management', href: '/project', icon: WrenchScrewdriverIcon, app: 'projects' },
         { name: 'Safety Management', href: '/safety', icon: ShieldCheckIcon, app: 'safety' },
@@ -33,34 +33,29 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
 
     const hasAccess = (itemApp) => {
         if (!user) return false;
-        if (user.superuser || user.is_superuser) return true;
-
         const roleName = userRole?.name?.toLowerCase() || '';
+        const isAdmin = roleName.includes('admin');
+
+        if (user.superuser || user.is_superuser || isAdmin) return true;
         const allPerms = Object.values(appPermissions).flat();
 
-        // Dashboard: requires specific view_dashboardaccess permission
-        if (itemApp === 'admin_only') {
+        // Dashboard specific check
+        if (itemApp === 'dashboard') {
             const dashPerm = allPerms.find(p => p.codename === 'view_dashboardaccess');
             if (dashPerm && userPermIds.includes(dashPerm.id)) return true;
-            // Fallback: admin/project roles get dashboard by default
-            return roleName.includes('admin') || roleName.includes('project');
         }
 
-        // 1. Fallback Logic using Role Name
-        if (roleName.includes('safety') && itemApp === 'safety') return true;
-        if (roleName.includes('inventory') && itemApp === 'inventory') return true;
-        if ((roleName.includes('production') || roleName.includes('financial') || roleName.includes('finance')) && itemApp === 'production') return true;
-        if (roleName.includes('equipment') && itemApp === 'equipment') return true;
-        if ((roleName.includes('admin') || roleName.includes('project')) && (itemApp === 'projects' || itemApp === 'users')) return true;
+        // Feature modules dynamic check
+        const permissionModule = itemApp === 'dashboard' ? 'users' : itemApp;
+        const modulePerms = appPermissions?.[permissionModule] || [];
 
         // 2. Dynamic Checking via RolesAndPermissions.jsx
-        // 'admin_only' relies on the 'users' permissions module if not hardcoded
-        const permissionModule = itemApp === 'admin_only' ? 'users' : itemApp;
-        
-        const modulePerms = appPermissions?.[permissionModule] || [];
-        
-        // Find the specific "view" permission for this module
-        const viewPerm = modulePerms.find(perm => perm.codename && perm.codename.includes('view'));
+        // Find the specific "view" permission for this module (exclude dashboard access perm)
+        const viewPerm = modulePerms.find(perm => 
+            perm.codename && 
+            perm.codename.includes('view') && 
+            !perm.codename.includes('dashboardaccess')
+        );
         
         if (viewPerm) {
             return userPermIds.includes(viewPerm.id);

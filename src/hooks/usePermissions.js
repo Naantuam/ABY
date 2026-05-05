@@ -11,10 +11,12 @@ export function usePermissions(appName) {
     // Strict fallback if user is not loaded
     if (!user) return { canAdd: false, canEdit: false, canDelete: false, canView: false, isSuperuser: false };
     
-    // Superuser overrides everything
-    if (user.superuser || user.is_superuser) return { canAdd: true, canEdit: true, canDelete: true, canView: true, isSuperuser: true };
-
     const userRole = roles?.find(r => r.id === user?.role);
+    const isAdmin = userRole?.name?.toLowerCase().includes('admin');
+
+    // Superuser or Admin overrides everything
+    if (user.superuser || user.is_superuser || isAdmin) return { canAdd: true, canEdit: true, canDelete: true, canView: true, isSuperuser: true };
+
     const userPermIds = userRole?.permissions || [];
     const modulePerms = appPermissions?.[appName] || [];
 

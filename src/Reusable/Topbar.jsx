@@ -7,19 +7,10 @@ import { UserCircle, LogOut } from 'lucide-react';
 
 export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { }, user = null, roles = [], loadingAuth = true }) {
 
-  // Define hardcoded roles mapping for frontend display
-  const ROLE_MAP = {
-    0: "Project Manager",
-    1: "Safety Officer",
-    2: "Inventory Manager",
-    3: "Production Manager",
-    4: "Equipment Manager"
-  };
-
   const roleObject = roles.find(r => r.id === user?.role);
   // Give priority to superuser label
   const roleLabel = (user?.superuser || user?.is_superuser) ? "Admin" 
-                    : (ROLE_MAP[user?.role] || (roleObject ? (roleObject.label ?? roleObject.name) : (user?.role || "Unknown Role")));
+                    : (roleObject ? (roleObject.label ?? roleObject.name) : (user?.role || "Unknown Role"));
 
   return (
     <>

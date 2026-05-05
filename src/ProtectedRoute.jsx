@@ -26,9 +26,10 @@ const ProtectedRoute = ({ children, app }) => {
       }
       
       if (!user) return <Navigate to="/" replace />;
-      if (user.superuser || user.is_superuser) return children;
-
       const userRole = roles?.find(r => r.id === user?.role);
+      const isAdmin = userRole?.name?.toLowerCase().includes('admin');
+
+      if (user.superuser || user.is_superuser || isAdmin) return children;
       const userPermIds = userRole?.permissions || [];
 
       // Build a flat list of all permissions across all apps
@@ -36,7 +37,7 @@ const ProtectedRoute = ({ children, app }) => {
 
       let hasAccess = false;
 
-      if (app === 'admin_only') {
+      if (app === 'dashboard') {
         // Dashboard: check for specific view_dashboardaccess permission
         const dashPerm = allPerms.find(p => p.codename === 'view_dashboardaccess');
         if (dashPerm) {
@@ -52,15 +53,7 @@ const ProtectedRoute = ({ children, app }) => {
         }
       }
 
-      // Role-name fallbacks (in case permissions not yet explicitly configured)
-      const roleName = userRole?.name?.toLowerCase() || '';
-      if (!hasAccess) {
-        if ((roleName.includes('admin') || roleName.includes('project')) && (app === 'users' || app === 'projects' || app === 'admin_only')) hasAccess = true;
-        if (roleName.includes('safety') && app === 'safety') hasAccess = true;
-        if (roleName.includes('inventory') && app === 'inventory') hasAccess = true;
-        if ((roleName.includes('production') || roleName.includes('financial') || roleName.includes('finance')) && app === 'production') hasAccess = true;
-        if (roleName.includes('equipment') && app === 'equipment') hasAccess = true;
-      }
+
 
       if (!hasAccess) {
         return <Navigate to="/unauthorized" replace />;

@@ -34,7 +34,7 @@ function App() {
       {/* Main Pages with Unified Layout */}
       <Route element={<Layout />}>
         {/* Dashboard - "admin_only" for base access */}
-        <Route path="/dashboard" element={<ProtectedRoute app="admin_only"><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute app="dashboard"><Dashboard /></ProtectedRoute>} />
 
         {/* Feature Modules */}
         <Route path="/users" element={<ProtectedRoute app="users"><UsersDashboard /></ProtectedRoute>} />
