@@ -200,17 +200,17 @@ export default function RolesAndPermissions() {
 
       const payload = {
         name: role.name, // Keep existing name
-        permissions: formattedPermissions
+        permissions: editedRolePermissions // Send list of IDs to match backend ManyToMany field
       };
 
       console.group("🚀 [DEBUG FOR BACKEND: PAYLOAD SECURELY SENT]");
-      console.log(`Sending PUT request to: /users/roles/${targetId}/update/`);
+      console.log(`Sending PUT request to: /users/roles/${targetId}/`);
       console.log(`Total permissions sent: ${formattedPermissions.length}`);
       console.log(JSON.stringify(payload.permissions, null, 2));
       console.groupEnd();
 
       // PUT /api/users/roles/<id>/update/
-      await api.put(`/users/roles/${targetId}/update/`, payload);
+      await api.put(`/users/roles/${targetId}/`, payload);
 
       console.log("✅ Save success!");
 
@@ -226,7 +226,7 @@ export default function RolesAndPermissions() {
       alert("Role updated successfully.");
     } catch (error) {
       console.error("❌ Save failed:", error);
-      const urlTried = `/api/users/roles/${targetIdForLogs}/update/`;
+      const urlTried = `/api/users/roles/${targetIdForLogs}/`;
       const errMsg = error.response ? JSON.stringify(error.response.data) : error.message;
       alert(`Backend rejected it!
       
