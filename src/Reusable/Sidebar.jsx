@@ -35,7 +35,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
         if (!user) return false;
         if (user.superuser || user.is_superuser) return true;
 
-        const roleName = user.role?.name?.toLowerCase() || '';
+        const roleName = userRole?.name?.toLowerCase() || '';
         const allPerms = Object.values(appPermissions).flat();
 
         // Dashboard: requires specific view_dashboardaccess permission

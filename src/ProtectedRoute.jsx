@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children, app }) => {
       if (!user) return <Navigate to="/" replace />;
       if (user.superuser || user.is_superuser) return children;
 
-      const userRole = roles?.find(r => r.id === user?.role?.id);
+      const userRole = roles?.find(r => r.id === user?.role);
       const userPermIds = userRole?.permissions || [];
 
       // Build a flat list of all permissions across all apps
@@ -53,7 +53,7 @@ const ProtectedRoute = ({ children, app }) => {
       }
 
       // Role-name fallbacks (in case permissions not yet explicitly configured)
-      const roleName = user.role?.name?.toLowerCase() || '';
+      const roleName = userRole?.name?.toLowerCase() || '';
       if (!hasAccess) {
         if ((roleName.includes('admin') || roleName.includes('project')) && (app === 'users' || app === 'projects' || app === 'admin_only')) hasAccess = true;
         if (roleName.includes('safety') && app === 'safety') hasAccess = true;
