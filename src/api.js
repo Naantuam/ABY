@@ -20,6 +20,7 @@ const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "69420", // Bypasses the ngrok warning page that breaks CORS
   },
 });
 
@@ -70,6 +71,8 @@ api.interceptors.response.use(
         // We use a clean 'axios' call (not 'api') to avoid circular interceptors
         const refreshResponse = await axios.post(`${BASE_URL}/auth/refresh/`, {
           refresh: refreshToken,
+        }, {
+          headers: { "ngrok-skip-browser-warning": "69420" }
         });
 
         // 1. Get the new token from backend
