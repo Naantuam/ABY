@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthComponents/AuthLayout";
 import AuthCard from "./AuthComponents/AuthCard";
 import AuthLink from "./AuthComponents/AuthLink";
@@ -11,6 +12,7 @@ import api from "../api";
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.id]: e.target.value });
@@ -20,15 +22,32 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // 🔄 FIX: Removed "/api" prefix because api.js handles it now
-      const res = await api.post("/users/token/", form);
+      const res = await api.post("/auth/login/", form);
+      
+      if (res.data.mfa_required) {
+        // Redirect to MFA verification screen
+        navigate("/mfa", { state: { userId: res.data.user_id, email: res.data.email } });
+        return;
+      }
+
       const { access, user, refresh } = res.data;
 
       localStorage.setItem("access_token", access);
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("refresh_token", refresh);
 
-      window.location.href = "/dashboard";
+      // Determine redirect URL based on role
+      let redirectUrl = "/dashboard";
+      if (user.role && user.role.name && !user.is_superuser) {
+        const roleName = user.role.name.toLowerCase();
+        if (roleName.includes("safety")) redirectUrl = "/safety";
+        else if (roleName.includes("equipment")) redirectUrl = "/equipment";
+        else if (roleName.includes("project")) redirectUrl = "/project";
+        else if (roleName.includes("inventory")) redirectUrl = "/inventory";
+        else if (roleName.includes("financial") || roleName.includes("finance") || roleName.includes("production")) redirectUrl = "/production";
+      }
+
+      navigate(redirectUrl);
     } catch (err) {
       let errorMessage = "Login failed due to an unknown error.";
 

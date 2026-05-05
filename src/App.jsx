@@ -4,7 +4,9 @@ import "./App.css";
 import Login from "./UserDetail/Login";
 import MFA from "./UserDetail/MFA";
 import ForgotPassword from "./UserDetail/ForgotPassword";
+import ResetPassword from "./UserDetail/ResetPassword";
 import ActivateAccount from './UserDetail/ActivateAccount';
+import SecuritySettings from "./UserDetail/SecuritySettings";
 import Unauthorized from "./Pages/Auth/Unauthorized";
 
 import Layout from "./Reusable/Layout";
@@ -25,6 +27,7 @@ function App() {
       <Route path="/" element={<Login />} />
       <Route path="/mfa" element={<MFA />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
       <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -40,6 +43,7 @@ function App() {
         <Route path="/inventory" element={<ProtectedRoute app="inventory"><InventoryDashboard /></ProtectedRoute>} />
         <Route path="/safety" element={<ProtectedRoute app="safety"><SafetyDashboard /></ProtectedRoute>} />
         <Route path="/production" element={<ProtectedRoute app="production"><ProductionDashboard /></ProtectedRoute>} />
+        <Route path="/security" element={<SecuritySettings />} />
       </Route>
     </Routes>
   );

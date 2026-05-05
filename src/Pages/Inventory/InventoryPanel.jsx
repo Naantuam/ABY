@@ -3,17 +3,19 @@ import {
   ArchiveBoxIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTabPermission } from "../../hooks/useTabPermissions";
 
 import InventoryList from "./InventoryList";
 
 
 export default function InventoryPanel() {
-  const [activeTab, setActiveTab] = useState(0);
+  const canViewInventory = useTabPermission('inventory');
 
-  const tabs = [
-    { name: "Inventory List", icon: ArchiveBoxIcon, component: <InventoryList /> },
-    // { name: "Register Inventory", icon: UsersIcon, component: <Employees /> },
+  const allTabs = [
+    { name: "Inventory List", icon: ArchiveBoxIcon, component: <InventoryList />, show: canViewInventory },
   ];
+  const tabs = allTabs.filter(t => t.show);
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col font-sans">

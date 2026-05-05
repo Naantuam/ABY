@@ -4,22 +4,25 @@ import AuthCard from "./AuthComponents/AuthCard";
 import Logo from "./AuthComponents/Logo";
 import InputField from "./AuthComponents/InputField";
 import AuthButton from "./AuthComponents/AuthButton";
-import AuthLink from "./AuthComponents/AuthLink"; // Make sure to import this!
-import { Mail } from "lucide-react"; // Optional: Add icon for consistency
+import AuthLink from "./AuthComponents/AuthLink";
+import { Mail } from "lucide-react";
+import api from "../api";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setMessage("");
     try {
-      // 🔌 Call POST /api/auth/password/forgot
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const res = await api.post("/auth/password-reset-request/", { email });
+      setMessage(res.data.detail || "If an account with this email exists, a reset link has been sent.");
     } catch (error) {
       console.error(error);
+      setMessage("Failed to send reset link. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -41,21 +44,28 @@ const ForgotPassword = () => {
 
         {/* Middle Section (Form) */}
         <div className="flex-grow flex flex-col justify-center py-8">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <InputField
-              id="email"
-              label="Email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              Icon={Mail}
-            />
-
-            <div className="mt-2">
-              <AuthButton type="submit" label="Send Reset Link" isLoading={loading} />
+          {message ? (
+            <div className="text-center">
+              <p className="text-gray-200 text-sm mb-6">{message}</p>
+              <AuthButton label="Back to Login" onClick={() => window.location.href = "/"} />
             </div>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+              <InputField
+                id="email"
+                label="Email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                Icon={Mail}
+              />
+
+              <div className="mt-2">
+                <AuthButton type="submit" label="Send Reset Link" isLoading={loading} />
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Bottom Section: Back to Login */}

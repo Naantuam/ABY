@@ -5,19 +5,24 @@ import {
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTabPermission } from "../../hooks/useTabPermissions";
 
 import UserCategories from "./UserCategories";
 import Employees from "./Employees";
 import RolesAndPermissions from "./RolesAndPermissions";
 
 export default function UserPanel() {
-  const [activeTab, setActiveTab] = useState(0);
+  const canViewRoles = useTabPermission('role');
+  const canViewEmployees = useTabPermission('customuser');
+  const canViewPermissions = useTabPermission('rolemodulepermission');
 
-  const tabs = [
-    { name: "Roles", icon: UserIcon, component: <UserCategories /> },
-    { name: "Employees", icon: UsersIcon, component: <Employees /> },
-    { name: "Permissions", icon: ShieldCheckIcon, component: <RolesAndPermissions /> },
+  const allTabs = [
+    { name: "Roles", icon: UserIcon, component: <UserCategories />, show: canViewRoles },
+    { name: "Employees", icon: UsersIcon, component: <Employees />, show: canViewEmployees },
+    { name: "Permissions", icon: ShieldCheckIcon, component: <RolesAndPermissions />, show: canViewPermissions },
   ];
+  const tabs = allTabs.filter(t => t.show);
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col font-sans">

@@ -36,6 +36,8 @@ export default function UserCategories() {
   // ──────────────────────────────────────────────
   // 1️⃣ FETCH DATA
   // ──────────────────────────────────────────────
+  const UNASSIGNED_KEY = '__unassigned__';
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -50,50 +52,65 @@ export default function UserCategories() {
         permissions: role.permissions || []
       }));
 
-      setCategories(rolesList);
+      // Always add an Unassigned bucket at the end
+      const allCategories = [
+        ...rolesList,
+        { key: UNASSIGNED_KEY, label: 'Unassigned', permissions: [] }
+      ];
+      setCategories(allCategories);
 
+      // Fetch ALL users (handle pagination)
       let allUsers = [];
       let nextUrl = "/users/";
-
       while (nextUrl) {
         const res = await api.get(nextUrl);
         const data = res.data;
-        const pageUsers = Array.isArray(data) ? data : data.results || [];
+        const pageUsers = Array.isArray(data) ? data : (data.results || []);
         allUsers = [...allUsers, ...pageUsers];
-
         if (data.next) {
-          const urlObj = new URL(data.next);
-          nextUrl = urlObj.pathname + urlObj.search;
+          try {
+            const urlObj = new URL(data.next);
+            nextUrl = urlObj.pathname + urlObj.search;
+          } catch {
+            nextUrl = null;
+          }
         } else {
           nextUrl = null;
         }
       }
 
+      console.log(`Fetched ${allUsers.length} users from /users/`);
+
+      // Group users by role, and collect unassigned users
       const groupedUsers = rolesList.reduce((acc, category) => {
         acc[category.key] = allUsers.filter((user) => {
-          // Check both role name (label) and ID (key)
-          // The backend might return role_label or just role ID
-          if (user.role_label && user.role_label === category.label) return true;
-          if (user.role === category.key) return true;
-          if (String(user.role) === String(category.key)) return true;
-          // Also check nested role object if applicable
-          if (user.role && typeof user.role === 'object' && user.role.id === category.key) return true;
-          return false;
+          const userRole = user.role;
+          if (!userRole) return false;
+          if (typeof userRole === 'object' && userRole !== null) {
+            return userRole.id === category.key;
+          }
+          return String(userRole) === String(category.key);
         });
         return acc;
       }, {});
+
+      // Users with no role go into Unassigned
+      const assignedUserIds = new Set(
+        Object.values(groupedUsers).flat().map(u => u.id)
+      );
+      groupedUsers[UNASSIGNED_KEY] = allUsers.filter(u => !assignedUserIds.has(u.id));
 
       setUsersByCategory(groupedUsers);
       setError(null);
 
     } catch (err) {
       console.error("Failed to fetch data:", err);
-      // Fallback or empty state
       setCategories([]);
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -140,43 +157,40 @@ export default function UserCategories() {
     e.preventDefault();
     if (!canAdd) return alert("You don't have permission to add users.");
     const form = e.target;
-    let roleToAssign = selectedCategory.key;
+    const roleKey = selectedCategory.key;
+    const isUnassigned = roleKey === UNASSIGNED_KEY;
 
-    if (roleToAssign === undefined || roleToAssign === null) return;
-
-    const tempPassword = Math.random().toString(36).slice(-8) + "Aa1!";
-
-    const newUserPayload = {
-      username: form.name.value,
-      email: form.email.value,
-      phone_number: form.phone.value,
-      department: form.department.value,
-      password: tempPassword,
-      // Pass role ID if creating user with role directly is supported, 
-      // otherwise we might need to assign it after creation
-      role: roleToAssign
+    // Build payload – only include role_id when a real role is selected
+    const payload = {
+      username: form.name.value.trim(),
+      email: form.email.value.trim(),
+      phone_number: form.phone.value.trim(),
+      department: form.department.value.trim(),
+      password: "TEMP_" + Math.random().toString(36).slice(-8), // Dummy password for backend validation
     };
+    if (!isUnassigned) {
+      payload.role_id = roleKey;
+    }
 
     try {
-      // 🔹 Use atomic Create with Role endpoint
-      const res = await api.post('/users/create-with-role/', {
-        ...newUserPayload,
-        role_id: roleToAssign // Backend likely expects role_id for this specific endpoint
-      });
-
-      // No need for second API call
-      // The response usually contains the created user
-
-      setNewUserTempPassword(tempPassword);
-
-      setNewUserTempPassword(tempPassword);
+      if (isUnassigned) {
+        // Use standard create endpoint
+        await api.post('/users/', payload);
+      } else {
+        await api.post('/users/create-with-role/', payload);
+      }
+      
+      setNewUserTempPassword("ACTIVATION_EMAIL_SENT");
       fetchData();
-      alert(`User created!`);
     } catch (err) {
-      console.error(err);
-      alert("Creation failed.");
+      console.error("Create user error:", err.response?.data || err);
+      const errMsg = err.response?.data
+        ? Object.entries(err.response.data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n')
+        : err.message;
+      alert(`Creation failed:\n${errMsg}`);
     }
   };
+
   // ✅ DELETE USER HANDLER
   const handleDeleteUser = async (userId) => {
     if (!canDelete) return alert("You don't have permission to delete users.");
@@ -208,7 +222,10 @@ export default function UserCategories() {
         setNewCategory("");
         setShowForm(false);
         fetchData();
-      } catch (err) { alert("Failed to create category"); }
+      } catch (err) { 
+        console.error("Create Category Error:", err.response?.data || err);
+        alert("Failed to create category"); 
+      }
     }
   };
 
@@ -218,17 +235,16 @@ export default function UserCategories() {
       const isTemp = updatedUser.id && String(updatedUser.id).startsWith("TEMP-");
       if (isTemp) {
         if (!canAdd) return alert("You don't have permission to add users.");
-        const tempPassword = Math.random().toString(36).slice(-8) + "Aa1!";
         const payload = {
           username: updatedUser.username,
           email: updatedUser.email,
           phone_number: updatedUser.phone_number,
           department: updatedUser.department,
-          password: tempPassword,
+          password: "TEMP_" + Math.random().toString(36).slice(-8),
           role_id: updatedUser.role_id !== undefined ? updatedUser.role_id : selectedCategory.key
         };
         await api.post('/users/create-with-role/', payload);
-        alert(`Created ${updatedUser.username}! Temp Password is: ${tempPassword}`);
+        alert(`Created ${updatedUser.username}! An activation email has been sent to them.`);
       } else {
         await api.put(`/users/${updatedUser.id}/update/`, {
           username: updatedUser.username,
@@ -299,26 +315,38 @@ export default function UserCategories() {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-lg font-bold text-gray-800 mb-4 px-1">User Roles</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {categories.map((category) => (
-              <div
-                key={category.key}
-                onClick={() => setSelectedCategory(category)}
-                className="group flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-3 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <UserIcon className="h-4 w-4" />
+            {categories.map((category) => {
+              const isUnassigned = category.key === UNASSIGNED_KEY;
+              const count = usersByCategory[category.key]?.length || 0;
+              return (
+                <div
+                  key={category.key}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`group flex items-center justify-between rounded-lg shadow-sm border px-4 py-3 cursor-pointer hover:shadow-md transition-all ${
+                    isUnassigned
+                      ? 'bg-amber-50 border-amber-200 hover:border-amber-400'
+                      : 'bg-white border-gray-200 hover:border-blue-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-md transition-colors ${
+                      isUnassigned
+                        ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-500 group-hover:text-white'
+                        : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                    }`}>
+                      <UserIcon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">{category.label}</h3>
+                      <p className={`text-[10px] font-medium ${isUnassigned && count > 0 ? 'text-amber-600' : 'text-gray-500'}`}>
+                        {count} {isUnassigned ? 'need a role' : 'Staff'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">{category.label}</h3>
-                    <p className="text-[10px] text-gray-500 font-medium">
-                      {usersByCategory[category.key]?.length || 0} Staff
-                    </p>
-                  </div>
+                  <ChevronRightIcon className={`h-3 w-3 ${isUnassigned ? 'text-amber-300 group-hover:text-amber-500' : 'text-gray-300 group-hover:text-blue-500'}`} />
                 </div>
-                <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-blue-500" />
-              </div>
-            ))}
+              );
+            })}
 
             {canAdd && (
               <button
@@ -490,21 +518,26 @@ export default function UserCategories() {
               <button onClick={closeAddUserModal}><XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" /></button>
             </div>
             <form onSubmit={handleCreateUser} className="space-y-3">
-              <input name="name" placeholder="Full Name" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
-              <input name="email" type="email" placeholder="Email" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
-              <div className="grid grid-cols-2 gap-2">
-                <input name="phone" placeholder="Phone" className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
-                <input name="department" placeholder="Dept" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
-              </div>
-              {newUserTempPassword && (
-                <div className="p-3 bg-green-50 border border-green-100 rounded-lg text-center">
-                  <p className="text-xs text-green-700 mb-1">Success! Password:</p>
-                  <code className="bg-white px-2 py-1 rounded border border-green-200 text-green-800 font-bold text-sm">{newUserTempPassword}</code>
+              {newUserTempPassword !== "ACTIVATION_EMAIL_SENT" ? (
+                <>
+                  <input name="name" placeholder="Full Name" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                  <input name="email" type="email" placeholder="Email" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input name="phone" placeholder="Phone" className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                    <input name="department" placeholder="Dept" required className="w-full border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                  </div>
+                </>
+              ) : (
+                <div className="p-3 bg-green-50 border border-green-100 rounded-lg text-center my-4">
+                  <p className="text-sm text-green-700 font-medium">✅ Success! An activation email has been sent to the user.</p>
                 </div>
               )}
               <div className="pt-2 flex justify-end">
-                {!newUserTempPassword && <button type="submit" className="w-full py-2 rounded-md bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Create Account</button>}
-                {newUserTempPassword && <button type="button" onClick={closeAddUserModal} className="w-full py-2 rounded-md bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200">Done</button>}
+                {newUserTempPassword !== "ACTIVATION_EMAIL_SENT" ? (
+                  <button type="submit" className="w-full py-2 rounded-md bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Create Account</button>
+                ) : (
+                  <button type="button" onClick={closeAddUserModal} className="w-full py-2 rounded-md bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200">Done</button>
+                )}
               </div>
             </form>
           </div>

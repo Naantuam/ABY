@@ -16,7 +16,7 @@ export default function UserProfileModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+      <form onSubmit={(e) => { e.preventDefault(); handleSaveModal(editingEmployee); }} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
@@ -65,6 +65,7 @@ export default function UserProfileModal({
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Full Name</label>
                 <input
                   type="text"
+                  required
                   value={editingEmployee.name || ""}
                   onChange={(e) => handleChange("name", e.target.value)}
                   className="w-full text-sm border-b border-gray-300 py-1 focus:border-blue-500 focus:outline-none transition-colors bg-transparent placeholder-gray-300"
@@ -86,6 +87,7 @@ export default function UserProfileModal({
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
                   <input
                     type="email"
+                    required
                     value={editingEmployee.email || ""}
                     onChange={(e) => handleChange("email", e.target.value)}
                     className="w-full text-sm border-b border-gray-300 py-1 focus:border-blue-500 focus:outline-none transition-colors bg-transparent"
@@ -110,9 +112,14 @@ export default function UserProfileModal({
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount (₦)</label>
                   <input
-                    type="number"
+                    type="text"
+                    required
                     value={editingEmployee.amount || ""}
-                    onChange={(e) => handleChange("amount", e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.]/g, '');
+                      handleChange("amount", val);
+                    }}
+                    placeholder="e.g. 20000"
                     className="w-full text-sm border-b border-gray-300 py-1 focus:border-blue-500 focus:outline-none transition-colors bg-transparent"
                   />
                 </div>
@@ -125,20 +132,21 @@ export default function UserProfileModal({
         {/* Footer Actions */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
           <button
+            type="button"
             onClick={() => { setSelectedEmployee(null); setEditingEmployee(null); }}
             className="px-4 py-2 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-200 transition-colors"
           >
             Cancel
           </button>
           <button
-            onClick={() => handleSaveModal(editingEmployee)}
+            type="submit"
             className="px-6 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
           >
             Save Changes
           </button>
         </div>
 
-      </div>
+      </form>
     </div>
   );
 }

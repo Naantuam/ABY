@@ -325,7 +325,10 @@ export default function Employees() {
                   </td>
                   <td className="px-4 py-2.5 font-mono text-black">
                     {editingRowId === emp.id ? (
-                      <input className="border border-blue-400 rounded px-2 py-1 w-full bg-white" type="number" value={emp.amount} onChange={(e) => handleFieldChange(emp.id, "amount", e.target.value)} />
+                      <input className="border border-blue-400 rounded px-2 py-1 w-full bg-white" type="text" value={emp.amount} onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                        handleFieldChange(emp.id, "amount", val);
+                      }} />
                     ) : `₦${Number(emp.amount).toLocaleString()}`}
                   </td>
                   <td className="px-4 py-2.5 text-right flex justify-end gap-2 text-xs">

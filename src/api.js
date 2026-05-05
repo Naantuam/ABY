@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // 1️⃣ DEFINE BASE URL
-let BASE_URL = import.meta.env.VITE_API_URL || "https://abs-software-v2-s2qp.onrender.com";
+let BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 // Ensure clean URL (no trailing slash)
 if (BASE_URL.endsWith("/")) {
@@ -68,7 +68,7 @@ api.interceptors.response.use(
 
         // 🚀 THIS IS THE KEY PART YOU ASKED FOR
         // We use a clean 'axios' call (not 'api') to avoid circular interceptors
-        const refreshResponse = await axios.post(`${BASE_URL}/users/token/refresh/`, {
+        const refreshResponse = await axios.post(`${BASE_URL}/auth/refresh/`, {
           refresh: refreshToken,
         });
 

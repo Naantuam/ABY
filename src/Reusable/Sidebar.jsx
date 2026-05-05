@@ -35,13 +35,23 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
         if (!user) return false;
         if (user.superuser || user.is_superuser) return true;
 
-        const roleId = Number(user.role);
+        const roleName = user.role?.name?.toLowerCase() || '';
+        const allPerms = Object.values(appPermissions).flat();
 
-        if (roleId === 0 && (itemApp === 'admin_only' || itemApp === 'projects')) return true;
-        if (roleId === 1 && itemApp === 'safety') return true;
-        if (roleId === 2 && itemApp === 'inventory') return true;
-        if (roleId === 3 && itemApp === 'production') return true;
-        if (roleId === 4 && itemApp === 'equipment') return true;
+        // Dashboard: requires specific view_dashboardaccess permission
+        if (itemApp === 'admin_only') {
+            const dashPerm = allPerms.find(p => p.codename === 'view_dashboardaccess');
+            if (dashPerm && userPermIds.includes(dashPerm.id)) return true;
+            // Fallback: admin/project roles get dashboard by default
+            return roleName.includes('admin') || roleName.includes('project');
+        }
+
+        // 1. Fallback Logic using Role Name
+        if (roleName.includes('safety') && itemApp === 'safety') return true;
+        if (roleName.includes('inventory') && itemApp === 'inventory') return true;
+        if ((roleName.includes('production') || roleName.includes('financial') || roleName.includes('finance')) && itemApp === 'production') return true;
+        if (roleName.includes('equipment') && itemApp === 'equipment') return true;
+        if ((roleName.includes('admin') || roleName.includes('project')) && (itemApp === 'projects' || itemApp === 'users')) return true;
 
         // 2. Dynamic Checking via RolesAndPermissions.jsx
         // 'admin_only' relies on the 'users' permissions module if not hardcoded

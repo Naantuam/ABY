@@ -35,7 +35,15 @@ export default function RolesAndPermissions() {
       setLoading(true);
       try {
         // Define the apps we need permissions for
-        const apps = ['users', 'projects', 'equipment', 'inventory', 'safety', 'production'];
+        const apps = [
+          'users',       // → User Management, Employees, Roles
+          'projects',    // → Projects
+          'equipment',   // → Equipment
+          'inventory',   // → Inventory
+          'safety',      // → Risk Assessment, Safety Incidents
+          'production',  // → Operations, Maintenance, Daily Production
+          'operations',  // → OperationRecord, MaintenanceRecord
+        ];
 
         // Fetch roles and all app permissions in parallel
         const [rolesRes, ...permsResList] = await Promise.all([
@@ -69,7 +77,9 @@ export default function RolesAndPermissions() {
 
         const permsData = permsResList.flatMap((res, index) => {
           const rawData = Array.isArray(res.data) ? res.data : (res.data.results || []);
-          return rawData.map(p => ({ ...p, moduleName: apps[index] }));
+          return rawData
+            .filter(p => !p.codename.endsWith('_safety')) // Remove stale permissions
+            .map(p => ({ ...p, moduleName: apps[index] }));
         });
 
         setRoles(rolesData);
@@ -246,16 +256,25 @@ Please show this EXACT alert to your backend partner. If they built "update/", t
   // We'll group by a simple heuristic if 'app_label' isn't explicitly there.
 
   const GROUP_MAPPING = {
-    'Customuser': 'User Management',
-    'Role': 'Roles',
-    'Rolemodulepermission': 'Permission Configuration',
+    // Users app
+    'Customuser': 'Roles & System Access',
+    'Role': 'Roles & System Access',
+    'Rolemodulepermission': 'Permissions',
+    'Dashboardaccess': 'Dashboard',
+
+    // Production app
+    'Dailyproduction': 'Daily Production',
+    'Operationrecord': 'Operations Table',
+    'Maintenancerecord': 'Maintenance Table',
+
+    // Safety app
+    'Safetyincident': 'Safety Incidents',
+    'Riskassessment': 'Risk Assessment',
+
+    // Other apps
     'Project': 'Projects',
     'Equipment': 'Equipment',
     'Inventory': 'Inventory',
-    'Safety': 'Safety',
-    'Production': 'Production',
-    'Maintenance': 'Maintenance',
-    'Operation': 'Operations'
   };
 
   const groupedPermissions = permissions.reduce((acc, perm) => {
@@ -282,6 +301,12 @@ Please show this EXACT alert to your backend partner. If they built "update/", t
       'customuser': 'User',
       'rolemodulepermission': 'Role Permission',
       'role': 'Role',
+      'dashboardaccess': 'Dashboard',
+      'operationrecord': 'Operation',
+      'maintenancerecord': 'Maintenance',
+      'safetyincident': 'Safety Incident',
+      'riskassessment': 'Risk Assessment',
+      'dailyproduction': 'Daily Production',
       'add': 'Add',
       'change': 'Edit',
       'delete': 'Delete',

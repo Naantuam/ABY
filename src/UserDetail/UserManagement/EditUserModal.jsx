@@ -24,7 +24,8 @@ export default function EditUserModal({
   // Initialize local state
   const [editableUser, setEditableUser] = useState({
     ...selectedUser,
-    role_id: selectedUser.role, // Assuming 'role' is the ID
+    // role is now an object {id, name} — extract the id for editing
+    role_id: selectedUser.role?.id ?? selectedUser.role ?? null,
   });
 
   const [activeTab, setActiveTab] = useState(0);
@@ -222,11 +223,15 @@ export default function EditUserModal({
                         onChange={handleRoleChange}
                         className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none transition-colors"
                       >
-                        {categories.map((cat) => (
-                          <option key={cat.key} value={cat.key}>
-                            {cat.label}
-                          </option>
-                        ))}
+                        {/* Filter out the virtual Unassigned bucket and offer a blank option */}
+                        <option value="">-- No Role --</option>
+                        {categories
+                          .filter(cat => cat.key !== '__unassigned__')
+                          .map((cat) => (
+                            <option key={cat.key} value={cat.key}>
+                              {cat.label}
+                            </option>
+                          ))}
                       </select>
                     </div>
                     <p className="text-[10px] text-gray-500 mt-2 flex items-center gap-1">

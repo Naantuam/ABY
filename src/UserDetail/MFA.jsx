@@ -1,29 +1,83 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthComponents/AuthLayout";
 import AuthCard from "./AuthComponents/AuthCard";
 import Logo from "./AuthComponents/Logo";
 import InputField from "./AuthComponents/InputField";
 import AuthButton from "./AuthComponents/AuthButton";
-import MfaSelector from "./AuthComponents/MfaSelector";
+import api from "../api";
 
 const Mfa = () => {
-  const [method, setMethod] = useState(null);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [message, setMessage] = useState("");
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const userId = location.state?.userId;
+  const email = location.state?.email;
+
+  useEffect(() => {
+    // Redirect back to login if they bypassed it
+    if (!userId) {
+      navigate("/");
+    }
+  }, [userId, navigate]);
 
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setMessage("");
+
     try {
-      // 🔌 Call POST /api/auth/mfa/verify-code
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    } catch (error) {
-      console.error(error);
+      const res = await api.post("/auth/verify-otp/", {
+        user_id: userId,
+        otp_code: code
+      });
+
+      const { access, refresh, user } = res.data;
+
+      localStorage.setItem("access_token", access);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("refresh_token", refresh);
+
+      // Determine redirect URL based on role
+      let redirectUrl = "/dashboard";
+      if (user.role && user.role.name && !user.is_superuser) {
+        const roleName = user.role.name.toLowerCase();
+        if (roleName.includes("safety")) redirectUrl = "/safety";
+        else if (roleName.includes("equipment")) redirectUrl = "/equipment";
+        else if (roleName.includes("project")) redirectUrl = "/project";
+        else if (roleName.includes("inventory")) redirectUrl = "/inventory";
+        else if (roleName.includes("financial") || roleName.includes("finance") || roleName.includes("production")) redirectUrl = "/production";
+      }
+
+      navigate(redirectUrl);
+    } catch (err) {
+      console.error("Verification failed:", err);
+      setMessage(err.response?.data?.detail || "Verification failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResend = async () => {
+    setResending(true);
+    setMessage("");
+    try {
+      await api.post("/auth/resend-otp/", { user_id: userId });
+      setMessage("A new verification code has been sent to your email.");
+    } catch (err) {
+      console.error("Resend failed:", err);
+      setMessage("Failed to resend code. Please try again.");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  if (!userId) return null; // Prevent flicker before redirect
 
   return (
     <AuthLayout>
@@ -32,17 +86,15 @@ const Mfa = () => {
         <div className="flex flex-col items-center mt-4 md:mt-0">
           <Logo />
           <h2 className="text-xl font-bold text-white text-center mt-6">
-            Multi-Factor Authentication
+            2-Step Verification
           </h2>
           <p className="text-sm text-gray-300 text-center mt-2 mb-2">
-            Please select your authentication method
+            We sent a verification code to <strong>{email}</strong>.
           </p>
         </div>
 
         {/* Middle Section (Grows to fill space) */}
         <div className="flex-grow flex flex-col justify-center py-6 gap-6">
-          <MfaSelector onSelect={setMethod} />
-
           <form onSubmit={handleVerify} className="flex flex-col gap-6">
             <InputField
               id="code"
@@ -52,15 +104,31 @@ const Mfa = () => {
               onChange={(e) => setCode(e.target.value)}
             />
 
+            {message && (
+              <p className="text-sm text-center text-yellow-400">
+                {message}
+              </p>
+            )}
+
             <div className="mt-2">
               <AuthButton
                 type="submit"
-                label="Verify"
+                label="Verify Code"
                 isLoading={loading}
-                disabled={!method || !code}
+                disabled={!code || code.length < 6}
               />
             </div>
           </form>
+
+          <div className="flex justify-center mt-2">
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              {resending ? "Sending..." : "Didn't receive a code? Resend"}
+            </button>
+          </div>
         </div>
 
         {/* Bottom Spacer (Keep layout balanced) */}

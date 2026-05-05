@@ -3,18 +3,22 @@ import {
   WrenchScrewdriverIcon, UsersIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTabPermission } from "../../hooks/useTabPermissions";
 
 import IncidentList from "./IncidentList";
 import RiskList from "./RiskAssessment";
 
 
 export default function SafetyPanel() {
-  const [activeTab, setActiveTab] = useState(0);
+  const canViewIncident = useTabPermission('safetyincident');
+  const canViewRisk = useTabPermission('riskassessment');
 
-  const tabs = [
-    { name: "Incident List", icon: WrenchScrewdriverIcon, component: <IncidentList /> },
-    { name: "Risk Assessment", icon: UsersIcon, component: <RiskList /> },
+  const allTabs = [
+    { name: "Incident List", icon: WrenchScrewdriverIcon, component: <IncidentList />, show: canViewIncident },
+    { name: "Risk Assessment", icon: UsersIcon, component: <RiskList />, show: canViewRisk },
   ];
+  const tabs = allTabs.filter(t => t.show);
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col font-sans">

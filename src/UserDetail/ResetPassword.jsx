@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import AuthLayout from "./AuthComponents/AuthLayout";
@@ -8,36 +8,14 @@ import InputField from "./AuthComponents/InputField";
 import Logo from "./AuthComponents/Logo";
 import { Lock } from "lucide-react";
 
-export default function ActivateAccount() {
+export default function ResetPassword() {
   const { uid, token } = useParams();
   const navigate = useNavigate();
   
-  const [isValid, setIsValid] = useState(false);
-  const [loadingStatus, setLoadingStatus] = useState(true);
-  const [message, setMessage] = useState("Verifying link...");
-  
   const [form, setForm] = useState({ password: "", confirmPassword: "" });
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const verifyToken = async () => {
-      try {
-        await api.get(`/users/activate/${uid}/${token}/`);
-        setIsValid(true);
-        setMessage("Please set a password for your new account.");
-      } catch (error) {
-        console.error(error);
-        setMessage("❌ Activation failed. The link may be invalid or expired.");
-        setIsValid(false);
-      } finally {
-        setLoadingStatus(false);
-      }
-    };
-
-    if (uid && token) {
-      verifyToken();
-    }
-  }, [uid, token]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.id]: e.target.value });
@@ -49,17 +27,18 @@ export default function ActivateAccount() {
       return;
     }
     
-    setSubmitting(true);
+    setLoading(true);
+    setMessage("");
     try {
-      await api.post(`/users/activate/${uid}/${token}/`, { password: form.password });
-      setMessage("✅ Account activated! Redirecting to login...");
-      setIsValid(false); // Hide the form
+      await api.post(`/auth/password-reset-confirm/${uid}/${token}/`, { password: form.password });
+      setSuccess(true);
+      setMessage("✅ Password has been reset successfully! Redirecting to login...");
       setTimeout(() => navigate("/"), 3000);
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.detail || "Failed to set password and activate account.");
+      setMessage(error.response?.data?.detail || "Failed to reset password. The link may be expired.");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -69,19 +48,21 @@ export default function ActivateAccount() {
         <div className="flex flex-col items-center justify-center mt-4 md:mt-0">
           <Logo />
           <h1 className="text-white text-xl font-bold text-center mt-6 mb-2">
-            Activate Your Account
+            Reset Your Password
           </h1>
-          <p className="text-gray-300 text-sm text-center mb-6">{message}</p>
+          <p className="text-gray-300 text-sm text-center mb-6">
+            Enter a new password for your account.
+          </p>
         </div>
 
-        {loadingStatus && (
-          <div className="flex justify-center text-white pb-6">
-             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-          </div>
-        )}
+        <div className="flex-grow flex flex-col justify-center py-6">
+          {message && (
+            <p className={`text-sm text-center mb-6 ${success ? 'text-green-400' : 'text-red-400'}`}>
+              {message}
+            </p>
+          )}
 
-        {!loadingStatus && isValid && (
-          <div className="flex-grow flex flex-col justify-center py-6">
+          {!success && (
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               <InputField
                 id="password"
@@ -106,13 +87,13 @@ export default function ActivateAccount() {
               <div className="mt-4">
                 <AuthButton
                   type="submit"
-                  label="Set Password & Activate"
-                  isLoading={submitting}
+                  label="Reset Password"
+                  isLoading={loading}
                 />
               </div>
             </form>
-          </div>
-        )}
+          )}
+        </div>
       </AuthCard>
     </AuthLayout>
   );

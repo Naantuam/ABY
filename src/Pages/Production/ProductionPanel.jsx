@@ -4,6 +4,7 @@ import {
   UsersIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTabPermission } from "../../hooks/useTabPermissions";
 
 import OperationList from "./OperationList";
 import MaintenanceList from "./MaintenanceList";
@@ -11,13 +12,17 @@ import DailyProduction from "./Daily Production";
 
 
 export default function ProductionPanel() {
-  const [activeTab, setActiveTab] = useState(0);
+  const canViewOperation = useTabPermission('operationrecord');
+  const canViewMaintenance = useTabPermission('maintenancerecord');
+  const canViewDailyProduction = useTabPermission('dailyproduction');
 
-  const tabs = [
-    { name: "Operation", icon: ArchiveBoxIcon, component: <OperationList /> },
-    { name: "Maintenance", icon: UsersIcon, component: <MaintenanceList /> },
-    { name: "Production", icon: UsersIcon, component: <DailyProduction /> },
+  const allTabs = [
+    { name: "Operation", icon: ArchiveBoxIcon, component: <OperationList />, show: canViewOperation },
+    { name: "Maintenance", icon: UsersIcon, component: <MaintenanceList />, show: canViewMaintenance },
+    { name: "Production", icon: UsersIcon, component: <DailyProduction />, show: canViewDailyProduction },
   ];
+  const tabs = allTabs.filter(t => t.show);
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col font-sans">

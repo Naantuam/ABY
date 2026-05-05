@@ -207,8 +207,20 @@ export default function OperationList() {
   const handleFieldChange = (id, field, value) => {
     setItems((prev) => prev.map((item) => {
       if (item.id === id) {
-        const updated = { ...item, [field]: value };
-        // Auto-calc balance if income/expenditure changes
+        let processedValue = value;
+        
+        // 1. Sanitize Numeric Fields (Income, Expenditure, Rate)
+        if (['Income', 'Expenditure', 'Rate'].includes(field)) {
+          // Remove everything except numbers and one decimal point
+          processedValue = value.replace(/[^0-9.]/g, '');
+          // Prevent multiple decimals
+          const parts = processedValue.split('.');
+          if (parts.length > 2) processedValue = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        const updated = { ...item, [field]: processedValue };
+
+        // 2. Auto-calc balance if income/expenditure changes
         if (field === 'Income' || field === 'Expenditure') {
           updated.Bal = Number(updated.Income || 0) - Number(updated.Expenditure || 0);
         }
@@ -504,7 +516,8 @@ export default function OperationList() {
                 <td className="px-2 py-2">
                   {editingRowId === item.id ? (
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={item.Income}
                       onChange={(e) =>
                         handleFieldChange(item.id, "Income", e.target.value)
@@ -520,7 +533,8 @@ export default function OperationList() {
                 <td className="px-2 py-2">
                   {editingRowId === item.id ? (
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={item.Expenditure}
                       onChange={(e) =>
                         handleFieldChange(item.id, "Expenditure", e.target.value)
@@ -725,7 +739,8 @@ export default function OperationList() {
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Income (₦)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={items.find(it => it.id === editingRowId)?.Income || 0}
                     onChange={(e) => handleFieldChange(editingRowId, "Income", e.target.value)}
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -735,7 +750,8 @@ export default function OperationList() {
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Expenditure (₦)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={items.find(it => it.id === editingRowId)?.Expenditure || 0}
                     onChange={(e) => handleFieldChange(editingRowId, "Expenditure", e.target.value)}
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"

@@ -8,13 +8,15 @@ import {
   ChartBarSquareIcon,
   ClockIcon,
   ChevronRightIcon,
-  EllipsisHorizontalIcon
+  EllipsisHorizontalIcon,
+  CogIcon,
+  WrenchIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
 import api from "../../api";
 
 // 1️⃣ CONFIGURATION: Map Types to Icons & Colors
-// Based on your specific navigation array
 const CATEGORY_CONFIG = {
   user: {
     icon: UsersIcon,
@@ -52,6 +54,24 @@ const CATEGORY_CONFIG = {
     bg: "bg-purple-50",
     border: "border-purple-100"
   },
+  operation: {
+    icon: CogIcon,
+    color: "text-cyan-600",
+    bg: "bg-cyan-50",
+    border: "border-cyan-100"
+  },
+  maintenance: {
+    icon: WrenchIcon,
+    color: "text-orange-600",
+    bg: "bg-orange-50",
+    border: "border-orange-100"
+  },
+  employee: {
+    icon: UserIcon,
+    color: "text-violet-600",
+    bg: "bg-violet-50",
+    border: "border-violet-100"
+  },
 };
 
 // 2️⃣ HELPER: Relative Time Formatter (No External Libs)
@@ -79,22 +99,29 @@ export default function RecentActivity() {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const response = await api.get("/activity/recent/");
+        const response = await api.get("/dashboard/activity/recent/");
         console.log("📜 Raw Activity Response:", response.data);
 
         const mappedActivities = response.data
           .map(item => {
-            // Capitalize the action nicely
             const actionStr = item.action ? (item.action.charAt(0).toUpperCase() + item.action.slice(1)) : '';
-            // Clean up the user string if it comes back with just parentheses e.g. "  (hivalnetwork@gmail.com)"
             let cleanUser = item.user ? item.user.trim() : "System";
             if (cleanUser.startsWith("(") && cleanUser.endsWith(")")) {
               cleanUser = cleanUser.slice(1, -1);
             }
 
+            // Resolve the category key to use in CATEGORY_CONFIG
+            // 'projects' → 'project', 'production' stays 'production'
+            let typeKey = item.app_name ? item.app_name.toLowerCase() : 'project';
+            if (typeKey === 'projects') typeKey = 'project';
+            // Map model_name to a more specific type key if available
+            if (item.model_name === 'Operation Record') typeKey = 'production';
+            if (item.model_name === 'Maintenance Record') typeKey = 'production';
+            if (item.model_name === 'Employee') typeKey = 'user';
+
             return {
               id: item.id,
-              type: (item.app_name === 'projects' ? 'project' : (item.app_name ? item.app_name.toLowerCase() : "project")),
+              type: typeKey,
               title: `${item.model_name || 'System'} ${actionStr}`.trim(),
               description: item.description || "No details provided.",
               time: getRelativeTime(item.created_at),
@@ -102,9 +129,7 @@ export default function RecentActivity() {
               raw_id: item.id
             };
           })
-          .sort((a, b) => {
-            return Number(b.id) - Number(a.id);
-          });
+          .sort((a, b) => Number(b.raw_id) - Number(a.raw_id));
 
         setActivities(mappedActivities);
       } catch (err) {
@@ -189,7 +214,7 @@ export default function RecentActivity() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                      <p className="text-sm font-semibold text-gray-900 truncate pr-2 capitalize">
+                      <p className="text-xs font-semibold text-gray-900 truncate pr-2 capitalize">
                         {activity.title}
                       </p>
                       <span className="text-[10px] text-gray-600 whitespace-nowrap bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">

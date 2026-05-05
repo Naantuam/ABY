@@ -28,30 +28,38 @@ const ProtectedRoute = ({ children, app }) => {
       if (!user) return <Navigate to="/" replace />;
       if (user.superuser || user.is_superuser) return children;
 
-      const userRole = roles?.find(r => r.id === user?.role);
+      const userRole = roles?.find(r => r.id === user?.role?.id);
       const userPermIds = userRole?.permissions || [];
-      
-      const modulePerms = appPermissions?.[app] || [];
-      // Do they have ANY permission for this app? Or explicitly 'view'?
-      const viewPerm = modulePerms.find(p => p.codename && p.codename.includes('view'));
+
+      // Build a flat list of all permissions across all apps
+      const allPerms = Object.values(appPermissions).flat();
+
       let hasAccess = false;
-      
-      if (viewPerm) {
-          hasAccess = userPermIds.includes(viewPerm.id);
+
+      if (app === 'admin_only') {
+        // Dashboard: check for specific view_dashboardaccess permission
+        const dashPerm = allPerms.find(p => p.codename === 'view_dashboardaccess');
+        if (dashPerm) {
+          hasAccess = userPermIds.includes(dashPerm.id);
+        }
       } else {
-          // Fallback if no specific view permission: do they have ANY permission in this module?
+        const modulePerms = appPermissions?.[app] || [];
+        const viewPerm = modulePerms.find(p => p.codename && p.codename.includes('view'));
+        if (viewPerm) {
+          hasAccess = userPermIds.includes(viewPerm.id);
+        } else {
           hasAccess = modulePerms.some(perm => userPermIds.includes(perm.id));
+        }
       }
 
-      // Explicit hardcoded fallbacks just like the Sidebar has 
-      // (in case backend doesn't explicitly link "admin_only" modules yet)
-      const roleId = Number(user.role);
+      // Role-name fallbacks (in case permissions not yet explicitly configured)
+      const roleName = user.role?.name?.toLowerCase() || '';
       if (!hasAccess) {
-        if (roleId === 0 && (app === 'users' || app === 'projects' || app === 'admin_only')) hasAccess = true;
-        if (roleId === 1 && app === 'safety') hasAccess = true;
-        if (roleId === 2 && app === 'inventory') hasAccess = true;
-        if (roleId === 3 && app === 'production') hasAccess = true;
-        if (roleId === 4 && app === 'equipment') hasAccess = true;
+        if ((roleName.includes('admin') || roleName.includes('project')) && (app === 'users' || app === 'projects' || app === 'admin_only')) hasAccess = true;
+        if (roleName.includes('safety') && app === 'safety') hasAccess = true;
+        if (roleName.includes('inventory') && app === 'inventory') hasAccess = true;
+        if ((roleName.includes('production') || roleName.includes('financial') || roleName.includes('finance')) && app === 'production') hasAccess = true;
+        if (roleName.includes('equipment') && app === 'equipment') hasAccess = true;
       }
 
       if (!hasAccess) {
