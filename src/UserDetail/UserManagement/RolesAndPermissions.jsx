@@ -108,9 +108,13 @@ export default function RolesAndPermissions() {
       const res = await api.get(`/users/roles/${roleId}/`);
       const data = res.data;
       const dbPermissions = data.permissions || [];
-      // Extract the actual permission IDs from the detailed response
-      const permIds = dbPermissions.map(p => p.permission || p.id || p.permission_id);
-      setEditedRolePermissions(permIds.filter(id => id != null));
+      const permIds = dbPermissions.map(p => {
+        if (typeof p === 'object' && p !== null) {
+          return p.permission || p.id || p.permission_id;
+        }
+        return p;
+      });
+      setEditedRolePermissions(permIds.filter(id => id != null).map(Number));
     } catch (error) {
       console.error(`Failed to fetch permissions for role ${roleId} (likely backend 404). Falling back to cached list.`, error);
       // Fallback: if the detailed route fails, grab from the main list so we don't end up empty
