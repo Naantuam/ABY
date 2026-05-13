@@ -45,9 +45,9 @@ const ProtectedRoute = ({ children, app }) => {
       }
     } else {
       const modulePerms = appPermissions?.[app] || [];
-      const viewPerm = modulePerms.find(p => p.codename && p.codename.includes('view'));
-      if (viewPerm) {
-        hasAccess = userPermIds.includes(viewPerm.id);
+      const viewPerms = modulePerms.filter(p => p.codename && p.codename.includes('view'));
+      if (viewPerms.length > 0) {
+        hasAccess = viewPerms.some(p => userPermIds.includes(p.id));
       } else {
         hasAccess = modulePerms.some(perm => userPermIds.includes(perm.id));
       }

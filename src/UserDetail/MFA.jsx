@@ -43,16 +43,8 @@ const Mfa = () => {
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("refresh_token", refresh);
 
-      // Determine redirect URL based on role
-      let redirectUrl = "/dashboard";
-      if (user.role && user.role.name && !user.is_superuser) {
-        const roleName = user.role.name.toLowerCase();
-        if (roleName.includes("safety")) redirectUrl = "/safety";
-        else if (roleName.includes("equipment")) redirectUrl = "/equipment";
-        else if (roleName.includes("project")) redirectUrl = "/project";
-        else if (roleName.includes("inventory")) redirectUrl = "/inventory";
-        else if (roleName.includes("financial") || roleName.includes("finance") || roleName.includes("production")) redirectUrl = "/production";
-      }
+      // Determine redirect URL dynamically based on permissions sent from backend
+      const redirectUrl = user.default_redirect || "/dashboard";
 
       navigate(redirectUrl);
     } catch (err) {

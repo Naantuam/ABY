@@ -595,7 +595,7 @@ export default function DailyProduction() {
               <div className="flex justify-between items-start mb-3 border-b border-gray-50 pb-2">
                 <div>
                   <h3 className="text-sm font-bold text-gray-900">{item.Date}</h3>
-                  <p className="text-[10px] text-gray-400 font-mono">#{item.id}</p>
+                  <p className="text-[10px] text-gray-400 font-mono">{item.id}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-blue-600">₦{fmt(item.Total)}</p>

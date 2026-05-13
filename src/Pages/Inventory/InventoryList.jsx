@@ -385,16 +385,17 @@ export default function InventoryList() {
 
       <div className="hidden lg:flex justify-between items-center mb-4">
         {/* Add New Item */}
-        {canAdd ? (
-          <button
-            onClick={handleAddItem}
-            className="bg-blue-600 text-white text-sm px-2 py-2 rounded-lg hover:bg-blue-700"
-          >
-            + Add Item
-          </button>
-        ) : <div />}
+        <div />
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {canAdd && (
+            <button
+              onClick={handleAddItem}
+              className="bg-blue-600 text-white text-sm px-2 py-1.5 rounded-lg hover:bg-blue-700 whitespace-nowrap"
+            >
+              + Add Item
+            </button>
+          )}
           <input 
             type="file" 
             accept=".xlsx, .xls, .csv" 
@@ -685,7 +686,7 @@ export default function InventoryList() {
             <div className="flex justify-between items-start mb-3 border-b border-gray-50 pb-2">
               <div>
                 <h3 className="text-sm font-bold text-gray-900">{item.name}</h3>
-                <p className="text-[10px] text-gray-400 font-mono">#{item.id}</p>
+                <p className="text-[10px] text-gray-400 font-mono">{item.id}</p>
               </div>
               <div className="text-right">
                 <span

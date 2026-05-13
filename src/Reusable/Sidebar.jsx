@@ -50,15 +50,15 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
         const modulePerms = appPermissions?.[permissionModule] || [];
 
         // 2. Dynamic Checking via RolesAndPermissions.jsx
-        // Find the specific "view" permission for this module (exclude dashboard access perm)
-        const viewPerm = modulePerms.find(perm => 
+        // Find ALL specific "view" permissions for this module (exclude dashboard access perm)
+        const viewPerms = modulePerms.filter(perm => 
             perm.codename && 
             perm.codename.includes('view') && 
             !perm.codename.includes('dashboardaccess')
         );
         
-        if (viewPerm) {
-            return userPermIds.includes(viewPerm.id);
+        if (viewPerms.length > 0) {
+            return viewPerms.some(p => userPermIds.includes(p.id));
         }
 
         // Fallback: If no explicit 'view' perm is identified, check if they have any permission

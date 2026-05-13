@@ -126,10 +126,11 @@ export default function RecentActivity() {
               description: item.description || "No details provided.",
               time: getRelativeTime(item.created_at),
               user: cleanUser,
-              raw_id: item.id
+              raw_id: item.id,
+              created_at: item.created_at
             };
           })
-          .sort((a, b) => Number(b.raw_id) - Number(a.raw_id));
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         setActivities(mappedActivities);
       } catch (err) {

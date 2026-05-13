@@ -22,10 +22,10 @@ export function usePermissions(appName) {
 
     // Helper to check if the user's role array includes the ID of the requested action's permission
     const hasPermission = (action) => {
-        // Find permission directly associated with action
-        const targetPerm = modulePerms.find(p => p.codename && p.codename.includes(`${action}_`));
-        if (targetPerm) {
-            return userPermIds.includes(targetPerm.id);
+        // Find ALL permissions associated with action in this module
+        const targetPerms = modulePerms.filter(p => p.codename && p.codename.includes(`${action}_`));
+        if (targetPerms.length > 0) {
+            return targetPerms.some(p => userPermIds.includes(p.id));
         }
         
         // If checking for 'view' and specific view perm doesn't exist, generic fallback:

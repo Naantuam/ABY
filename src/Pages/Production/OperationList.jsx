@@ -374,16 +374,17 @@ export default function OperationList() {
 
 
         <div className="flex justify-between items-center">
-          {canAdd ? (
-            <button
-              onClick={handleAdd}
-              className="bg-blue-600 text-white text-sm px-2 py-2 rounded-lg hover:bg-blue-700"
-            >
-              + Add Operation
-            </button>
-          ) : <div />}
+          <div />
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            {canAdd && (
+              <button
+                onClick={handleAdd}
+                className="bg-blue-600 text-white text-sm px-2 py-1.5 rounded-lg hover:bg-blue-700 whitespace-nowrap"
+              >
+                + Add Operation
+              </button>
+            )}
             <input
               type="file"
               accept=".xlsx, .xls, .csv"
@@ -659,7 +660,7 @@ export default function OperationList() {
             <div className="flex justify-between items-start mb-3 border-b border-gray-50 pb-2">
               <div>
                 <h3 className="text-sm font-bold text-gray-900">{item.Date}</h3>
-                <p className="text-[10px] text-gray-400 font-mono">#{item.id}</p>
+                <p className="text-[10px] text-gray-400 font-mono">{item.id}</p>
               </div>
               <div className="text-right">
                 <p className={`text-sm font-bold ${item.Bal >= 0 ? "text-green-600" : "text-red-600"}`}>Bal: ₦{fmt(item.Bal)}</p>

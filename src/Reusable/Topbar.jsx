@@ -1,16 +1,66 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   EnvelopeIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
-import { UserCircle, LogOut } from 'lucide-react';
+import { UserCircle, LogOut, Send, Loader2 } from 'lucide-react';
+import api from "../api"
 
 export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { }, user = null, roles = [], loadingAuth = true }) {
 
   const roleObject = roles.find(r => r.id === user?.role);
   // Give priority to superuser label
-  const roleLabel = (user?.superuser || user?.is_superuser) ? "Admin" 
-                    : (roleObject ? (roleObject.label ?? roleObject.name) : (user?.role || "Unknown Role"));
+  const isAdmin = (user?.superuser || user?.is_superuser || (roleObject && roleObject.name?.toLowerCase().includes('admin')));
+  const roleLabel = (user?.superuser || user?.is_superuser) ? "Admin"
+    : (roleObject ? (roleObject.label ?? roleObject.name) : (user?.role || "Unknown Role"));
+
+  const [announcementsOpen, setAnnouncementsOpen] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [loadingMsg, setLoadingMsg] = useState(false);
+  const [newMessage, setNewMessage] = useState("");
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setAnnouncementsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchAnnouncements = async () => {
+    setLoadingMsg(true);
+    try {
+      const res = await api.get('/users/announcements/');
+      // res.data could be array or paginated object, handle array for now
+      setAnnouncements(Array.isArray(res.data) ? res.data : (res.data.results || []));
+    } catch (err) {
+      console.error("Failed to load announcements", err);
+    } finally {
+      setLoadingMsg(false);
+    }
+  };
+
+  useEffect(() => {
+    if (announcementsOpen) {
+      fetchAnnouncements();
+    }
+  }, [announcementsOpen]);
+
+  const handleSendAnnouncement = async () => {
+    if (!newMessage.trim()) return;
+    try {
+      await api.post('/users/announcements/', { message: newMessage });
+      setNewMessage("");
+      fetchAnnouncements();
+    } catch (err) {
+      console.error("Failed to send announcement", err);
+      alert("Failed to send announcement.");
+    }
+  };
 
   return (
     <>
@@ -29,11 +79,74 @@ export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { },
 
         {/* Right section (Icons & User Info) */}
         <div className="flex items-center space-x-4">
-          {/* Notification Bell */}
-          <button className="relative text-gray-500 hover:text-blue-600 transition-colors p-1.5 rounded-full hover:bg-gray-50">
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
-            <EnvelopeIcon className="h-6 w-6" />
-          </button>
+
+          {/* Notification / Announcement Bell */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setAnnouncementsOpen(!announcementsOpen)}
+              className="relative text-gray-500 hover:text-blue-600 transition-colors p-1.5 rounded-full hover:bg-gray-50"
+            >
+              <EnvelopeIcon className="h-6 w-6" />
+            </button>
+
+            {/* Announcement Dropdown */}
+            {announcementsOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 flex flex-col max-h-[80vh] overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-gray-800">Announcements</h3>
+                </div>
+
+                {/* Admin Input Area */}
+                {isAdmin && (
+                  <div className="p-3 border-b border-gray-100 bg-white flex gap-2">
+                    <textarea
+                      className="flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-400 resize-none"
+                      rows={2}
+                      placeholder="Type a new announcement..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                    ></textarea>
+                    <button
+                      onClick={handleSendAnnouncement}
+                      className="bg-blue-600 text-white rounded-lg px-3 py-2 hover:bg-blue-700 transition flex items-center justify-center self-end"
+                      title="Send"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Messages List */}
+                <div className="flex-1 overflow-y-auto p-2 bg-white min-h-[150px] max-h-[300px]">
+                  {loadingMsg ? (
+                    <div className="flex justify-center items-center h-full text-blue-600">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  ) : announcements.length === 0 ? (
+                    <div className="text-center text-gray-500 text-sm mt-8">No announcements yet.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {announcements.map(ann => (
+                        <div key={ann.id} className="bg-blue-50 border border-blue-100 p-3 rounded-lg">
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{ann.created_by_name}</span>
+                            <span className="text-[10px] text-gray-500">{new Date(ann.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-sm text-gray-800 whitespace-pre-wrap">{ann.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {announcements.length > 0 && (
+                  <div className="border-t border-gray-100 p-2 text-center bg-gray-50">
+                    <button className="text-xs text-blue-600 font-bold hover:underline">View All</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* User Info & Icon */}
           <div className="flex items-center gap-3 pl-4 border-l border-gray-100">
