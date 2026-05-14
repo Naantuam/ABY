@@ -151,7 +151,7 @@ export default function OperationsChart() {
 
   // Use Summary API data for totals
   const currentSummary = activeChart === "operations" ? summaryData.operations : summaryData.maintenance;
-  const totals = currentSummary ? {
+  const totals = currentSummary && currentSummary.total_income !== undefined ? {
     Income: Number(currentSummary.total_income || 0),
     Expenses: Number(currentSummary.total_expenditure || 0),
     Balance: Number(currentSummary.total_balance || 0)

@@ -87,8 +87,22 @@ export default function MaintenanceList() {
 
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  // ------------------ Compute Cumulative Balance -------------------
+  let currentBalance = 0;
+  const itemsWithBalance = [...items].sort((a, b) => {
+    const dateA = new Date(a.Date).getTime() || 0;
+    const dateB = new Date(b.Date).getTime() || 0;
+    if (dateA !== dateB) return dateA - dateB;
+    const idA = String(a.id).startsWith("TEMP-") ? Infinity : Number(a.id.replace(/\D/g, ""));
+    const idB = String(b.id).startsWith("TEMP-") ? Infinity : Number(b.id.replace(/\D/g, ""));
+    return idA - idB;
+  }).map(item => {
+    currentBalance += Number(item.Income || 0) - Number(item.Expenditure || 0);
+    return { ...item, Bal: currentBalance };
+  });
+
   // Filtering logic
-  const filteredItems = items.filter((item) => {
+  const filteredItems = itemsWithBalance.filter((item) => {
     // --- S/N FILTER ---
     const itemSN = Number(item.id.replace(/\D/g, ""));
     const snSingle = filters.sn ? Number(filters.sn.replace(/\D/g, "")) : null;
@@ -240,11 +254,6 @@ export default function MaintenanceList() {
         }
 
         const updated = { ...item, [field]: processedValue };
-
-        // 2. Auto-calc balance if income/expenditure changes
-        if (field === 'Income' || field === 'Expenditure') {
-          updated.Bal = Number(updated.Income || 0) - Number(updated.Expenditure || 0);
-        }
         return updated;
       }
       return item;
@@ -737,7 +746,7 @@ export default function MaintenanceList() {
                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Date</label>
                 <input
                   type="date"
-                  value={items.find(it => it.id === editingRowId)?.Date || ""}
+                  value={itemsWithBalance.find(it => it.id === editingRowId)?.Date || ""}
                   onChange={(e) => handleFieldChange(editingRowId, "Date", e.target.value)}
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
@@ -748,7 +757,7 @@ export default function MaintenanceList() {
                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Description</label>
                 <input
                   type="text"
-                  value={items.find(it => it.id === editingRowId)?.Description || ""}
+                  value={itemsWithBalance.find(it => it.id === editingRowId)?.Description || ""}
                   onChange={(e) => handleFieldChange(editingRowId, "Description", e.target.value)}
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
@@ -760,7 +769,7 @@ export default function MaintenanceList() {
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Quantity</label>
                   <input
                     type="number"
-                    value={items.find(it => it.id === editingRowId)?.Quantity || ""}
+                    value={itemsWithBalance.find(it => it.id === editingRowId)?.Quantity || ""}
                     onChange={(e) => handleFieldChange(editingRowId, "Quantity", e.target.value)}
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
@@ -770,7 +779,7 @@ export default function MaintenanceList() {
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Rate</label>
                   <input
                     type="text"
-                    value={items.find(it => it.id === editingRowId)?.Rate || ""}
+                    value={itemsWithBalance.find(it => it.id === editingRowId)?.Rate || ""}
                     onChange={(e) => handleFieldChange(editingRowId, "Rate", e.target.value)}
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
@@ -784,7 +793,7 @@ export default function MaintenanceList() {
                   <input
                     type="text"
                     inputMode="decimal"
-                    value={items.find(it => it.id === editingRowId)?.Income || 0}
+                    value={itemsWithBalance.find(it => it.id === editingRowId)?.Income || 0}
                     onChange={(e) => handleFieldChange(editingRowId, "Income", e.target.value)}
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
@@ -795,7 +804,7 @@ export default function MaintenanceList() {
                   <input
                     type="text"
                     inputMode="decimal"
-                    value={items.find(it => it.id === editingRowId)?.Expenditure || 0}
+                    value={itemsWithBalance.find(it => it.id === editingRowId)?.Expenditure || 0}
                     onChange={(e) => handleFieldChange(editingRowId, "Expenditure", e.target.value)}
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />

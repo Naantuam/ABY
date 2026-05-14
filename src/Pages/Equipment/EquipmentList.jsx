@@ -10,6 +10,7 @@ import { usePermissions } from "../../hooks/usePermissions";
 
 export default function EquipmentList() {
   const [equipment, setEquipment] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Permission Logic
@@ -34,6 +35,7 @@ export default function EquipmentList() {
           serialNumber: item.serial_number || "N/A",
           cost: `$${Number(rawCost).toLocaleString()}`,
           status: item.status || "Unknown",
+          assignedTo: item.assigned_to || "",
           createdAt: item.created_at,
           updatedAt: item.updated_at
         };
@@ -46,9 +48,25 @@ export default function EquipmentList() {
     }
   };
 
+  const fetchEmployees = async () => {
+    try {
+      const response = await api.get("/users/employees/");
+      setEmployees(response.data.results || response.data || []);
+    } catch (err) {
+      console.error("Failed to fetch employees:", err);
+    }
+  };
+
   useEffect(() => {
     fetchEquipment();
+    fetchEmployees();
   }, []);
+
+  const getEmployeeName = (id) => {
+    if (!id) return "Unassigned";
+    const emp = employees.find(e => String(e.id) === String(id));
+    return emp ? emp.name : "Unassigned";
+  };
 
   // ────────────────────────────────
   // 2️⃣ State & Filters
@@ -198,7 +216,7 @@ export default function EquipmentList() {
   };
 
   const handleAdd = () => {
-    const newItem = { name: "", type: "", date: new Date().toISOString().slice(0, 10), cost: "", status: "Available", serialNumber: "" };
+    const newItem = { name: "", type: "", date: new Date().toISOString().slice(0, 10), cost: "", status: "Available", serialNumber: "", assignedTo: "" };
     setEditing(newItem);
   };
 
@@ -211,18 +229,19 @@ export default function EquipmentList() {
       equipment_type: editing.type,
       purchase_date: editing.date,
       status: editing.status,
-      serial_number: editing.serialNumber
+      serial_number: editing.serialNumber,
+      assigned_to: editing.assignedTo || null
     };
 
     try {
       const isTemp = editing.id && String(editing.id).startsWith("TEMP-");
       if (editing.id && !isTemp) {
         const response = await api.put(`/equipment/${editing.id}/`, payload);
-        const updatedItem = { ...response.data, id: String(response.data.id), name: response.data.equipment_name, type: response.data.equipment_type, date: response.data.purchase_date, cost: `$${Number(response.data.purchase_cost).toLocaleString()}`, serialNumber: response.data.serial_number, createdAt: response.data.created_at, updatedAt: response.data.updated_at };
+        const updatedItem = { ...response.data, id: String(response.data.id), name: response.data.equipment_name, type: response.data.equipment_type, date: response.data.purchase_date, cost: `$${Number(response.data.purchase_cost).toLocaleString()}`, serialNumber: response.data.serial_number, assignedTo: response.data.assigned_to, createdAt: response.data.created_at, updatedAt: response.data.updated_at };
         setEquipment((prev) => prev.map((eq) => (eq.id === String(editing.id) ? updatedItem : eq)));
       } else {
         const response = await api.post("/equipment/", payload);
-        const newItem = { ...response.data, id: String(response.data.id), name: response.data.equipment_name, type: response.data.equipment_type, date: response.data.purchase_date, cost: `$${Number(response.data.purchase_cost).toLocaleString()}`, serialNumber: response.data.serial_number, createdAt: response.data.created_at, updatedAt: response.data.updated_at };
+        const newItem = { ...response.data, id: String(response.data.id), name: response.data.equipment_name, type: response.data.equipment_type, date: response.data.purchase_date, cost: `$${Number(response.data.purchase_cost).toLocaleString()}`, serialNumber: response.data.serial_number, assignedTo: response.data.assigned_to, createdAt: response.data.created_at, updatedAt: response.data.updated_at };
         if (isTemp) {
            setEquipment((prev) => prev.map((eq) => (eq.id === String(editing.id) ? newItem : eq)));
         } else {
@@ -326,6 +345,7 @@ export default function EquipmentList() {
                 <th className="px-4 py-3 w-28"><button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${dateModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Date</button></th>
                 <th className="px-4 py-3 w-28"><button onClick={() => setCostModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${costModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Cost</button></th>
                 <th className="px-4 py-3 w-32"><select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer"><option value="">Status</option><option value="available">Available</option><option value="active">Active</option><option value="repair">Repair</option><option value="retired">Retired</option></select></th>
+                <th className="px-4 py-3 w-32">Assigned To</th>
                 <th className="px-4 py-3 w-20 text-right">Actions</th>
               </tr>
             </thead>
@@ -341,6 +361,7 @@ export default function EquipmentList() {
                     <td className="px-4 py-3 text-black">{eq.date}</td>
                     <td className="px-4 py-3 font-mono text-black">{eq.cost}</td>
                     <td className="px-4 py-3"><span className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-semibold border ${getStatusColor(eq.status)}`}>{eq.status}</span></td>
+                    <td className="px-4 py-3 text-black">{getEmployeeName(eq.assignedTo)}</td>
                     <td className="px-4 py-3 text-right flex justify-end gap-2">
                       {canEdit && <button onClick={(e) => { e.stopPropagation(); setEditing(eq); }} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded"><Edit className="w-4 h-4" /></button>}
                       {canDelete && <button onClick={(e) => handleDelete(eq.id, e)} className="text-red-600 hover:bg-red-50 p-1.5 rounded"><Trash2 className="w-4 h-4" /></button>}
@@ -373,6 +394,7 @@ export default function EquipmentList() {
                 <div className="flex items-center gap-1.5 bg-gray-50 p-2 rounded-lg"><Settings className="w-3.5 h-3.5 text-gray-400" /><span className="truncate">{eq.type}</span></div>
                 <div className="flex items-center gap-1.5 bg-gray-50 p-2 rounded-lg"><DollarSign className="w-3.5 h-3.5 text-gray-400" /><span className="truncate font-medium">{eq.cost}</span></div>
                 <div className="flex items-center gap-1.5 bg-gray-50 p-2 rounded-lg col-span-2"><Calendar className="w-3.5 h-3.5 text-gray-400" /><span className="truncate">Purchased: {eq.date}</span></div>
+                <div className="flex items-center gap-1.5 bg-gray-50 p-2 rounded-lg col-span-2"><Settings className="w-3.5 h-3.5 text-gray-400" /><span className="truncate">Assigned To: {getEmployeeName(eq.assignedTo)}</span></div>
               </div>
               <div className="flex justify-between items-center border-t border-gray-100 pt-3">
                 <span className="text-[10px] text-gray-400 font-mono">ID: #{eq.id}</span>
@@ -576,11 +598,22 @@ export default function EquipmentList() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                <select value={editing.status} onChange={(e) => setEditing({ ...editing, status: e.target.value })} disabled={!canEdit} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 uppercase">
-                  <option value="available">Available</option><option value="active">Active</option><option value="repair">Repair</option><option value="retired">Retired</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+                  <select value={editing.status} onChange={(e) => setEditing({ ...editing, status: e.target.value })} disabled={!canEdit} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 uppercase">
+                    <option value="available">Available</option><option value="active">Active</option><option value="repair">Repair</option><option value="retired">Retired</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Assigned To</label>
+                  <select value={editing.assignedTo || ""} onChange={(e) => setEditing({ ...editing, assignedTo: e.target.value })} disabled={!canEdit} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50">
+                    <option value="">Unassigned</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
