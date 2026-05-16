@@ -7,9 +7,9 @@ export default function SafetyCard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     total: 0,
-    recent: 0,
+    reported: 0,
     resolved: 0,
-    investigating: 0,
+    investigation: 0,
     loading: true
   });
 
@@ -21,9 +21,9 @@ export default function SafetyCard() {
 
         setStats({
           total: data.total_incidents || 0,
-          recent: data.recent_incidents || 0,
+          reported: data.reported_incidents || 0,
           resolved: data.resolved_incidents || 0,
-          investigating: data.investigating_incidents || 0,
+          investigation: data.investigation_incidents || 0,
           loading: false
         });
       } catch (error) {
@@ -56,17 +56,17 @@ export default function SafetyCard() {
 
         {/* Status tags */}
         <div className="grid grid-cols-3 mt-4 gap-2">
-          <div className="flex flex-col items-center gap-1 text-blue-600 px-1 py-1 text-sm font-semibold">
-            <span>{stats.loading ? "-" : stats.recent}</span>
-            <span className="bg-blue-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Recent</span>
+          <div className="flex flex-col items-center gap-1 text-red-600 px-1 py-1 text-sm font-semibold">
+            <span>{stats.loading ? "-" : stats.reported}</span>
+            <span className="bg-red-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Reported</span>
+          </div>
+          <div className="flex flex-col items-center gap-1 text-yellow-600 px-1 py-1 text-sm font-semibold">
+            <span>{stats.loading ? "-" : stats.investigation}</span>
+            <span className="bg-yellow-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Investigation</span>
           </div>
           <div className="flex flex-col items-center gap-1 text-green-700 px-1 py-1 text-sm font-semibold">
             <span>{stats.loading ? "-" : stats.resolved}</span>
             <span className="bg-green-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Resolved</span>
-          </div>
-          <div className="flex flex-col items-center gap-1 text-yellow-600 px-1 py-1 text-sm font-semibold">
-            <span>{stats.loading ? "-" : stats.investigating}</span>
-            <span className="bg-yellow-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Investigation</span>
           </div>
         </div>
       </div>

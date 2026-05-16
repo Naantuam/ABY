@@ -79,7 +79,7 @@ export default function IncidentList() {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "reported": return "bg-red-100 text-red-700 border-red-200";
-      case "resolving": return "bg-blue-100 text-blue-700 border-blue-200";
+      case "investigation": return "bg-blue-100 text-blue-700 border-blue-200";
       case "resolved": return "bg-green-100 text-green-700 border-green-200";
       default: return "bg-gray-100 text-gray-600 border-gray-200";
     }
@@ -352,7 +352,7 @@ export default function IncidentList() {
                   <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer">
                     <option value="">Status</option>
                     <option value="reported">Reported</option>
-                    <option value="resolving">Resolving</option>
+                    <option value="investigation">Investigation</option>
                     <option value="resolved">Resolved</option>
                   </select>
                 </th>
@@ -467,7 +467,7 @@ export default function IncidentList() {
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Status</label>
                 <div className="flex flex-wrap gap-2">
-                  {["", "reported", "resolving", "resolved"].map(opt => (
+                  {["", "reported", "investigation", "resolved"].map(opt => (
                     <button key={opt} onClick={() => setFilters({ ...filters, status: opt })} className={`px-3 py-2 rounded-full text-xs font-bold capitalize border ${filters.status === opt ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"}`}>{opt || "All"}</button>
                   ))}
                 </div>
@@ -629,7 +629,7 @@ export default function IncidentList() {
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
                 <select value={editing.incident_status} onChange={(e) => setEditing({ ...editing, incident_status: e.target.value })} disabled={editing.id ? !canEdit : !canAdd} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:border-blue-500 transition-colors capitalize">
                   <option value="reported">Reported</option>
-                  <option value="resolving">Resolving</option>
+                  <option value="investigation">Investigation</option>
                   <option value="resolved">Resolved</option>
                 </select>
               </div>

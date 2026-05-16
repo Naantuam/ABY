@@ -277,10 +277,10 @@ export default function RiskList() {
                <p className="text-xs text-gray-500">Track and mitigate safety hazards</p>
             </div>
             <div className="flex gap-2">
-               <input 
-                  type="file" 
-                  accept=".xlsx, .xls, .csv" 
-                  className="hidden" 
+               <input
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  className="hidden"
                   ref={fileInputRef}
                   onChange={handleImport}
                />

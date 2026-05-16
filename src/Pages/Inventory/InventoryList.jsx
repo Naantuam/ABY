@@ -69,7 +69,7 @@ export default function InventoryList() {
         quantity: item.quantity || 0,
         unit: item.unit || "pcs",
         lastUpdated: item.updated_at ? item.updated_at.split('T')[0] : (item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
-        status: item.status || "good",
+        status: item.status || "in_stock",
       }));
 
       setItems(formatted);
@@ -140,8 +140,8 @@ export default function InventoryList() {
   const getStatusColor = (status) => {
     const s = status ? status.toLowerCase() : "";
     if (s === "good" || s === "in_stock") return "bg-green-500 text-white";
-    if (s === "average" || s === "low_stock") return "bg-yellow-400 text-black";
-    if (s === "poor" || s === "bad" || s === "critical" || s === "restocking") return "bg-red-500 text-white";
+    if (s === "average" || s === "low_stock") return "bg-red-400 text-black";
+    if (s === "poor" || s === "bad" || s === "critical" || s === "restocking") return "bg-yellow-500 text-white";
     return "bg-gray-400 text-white";
   };
 
@@ -184,7 +184,7 @@ export default function InventoryList() {
           quantity: row["Quantity"] || 0,
           unit: row["Unit"] || "pcs",
           lastUpdated: row["Last Updated"] || new Date().toISOString().split('T')[0],
-          status: row["Status"] ? String(row["Status"]).toLowerCase().replace(/ /g, "_") : "good"
+          status: row["Status"] ? String(row["Status"]).toLowerCase().replace(/ /g, "_") : "in_stock"
         };
       });
 
@@ -194,7 +194,7 @@ export default function InventoryList() {
       alert("Failed to import file.");
     } finally {
       if (fileInputRef.current) {
-         fileInputRef.current.value = "";
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -207,7 +207,7 @@ export default function InventoryList() {
       quantity: 0,
       unit: "pcs",
       lastUpdated: new Date().toISOString().split('T')[0],
-      status: "good" // Default to 'good'
+      status: "in_stock" // Default to 'in_stock'
     };
     setItems([newItem, ...items]);
     setEditingRowId(newItem.id); // immediately editable
@@ -256,7 +256,7 @@ export default function InventoryList() {
         category: item.category || "Uncategorized",
         quantity: isNaN(parseInt(item.quantity)) ? 0 : parseInt(item.quantity, 10),
         unit: item.unit || "pcs",
-        status: item.status || "good"
+        status: item.status || "in_stock"
       };
 
       console.log("📤 Sending Inventory Payload:", payload);
@@ -281,7 +281,7 @@ export default function InventoryList() {
           );
         } else {
           // Update
-          const response = await api.put(`/inventory/items/${id}/`, payload);
+          const response = await api.put(`/inventory/${id}/`, payload);
           const updatedItem = response.data;
           setItems((prev) =>
             prev.map((it) => (it.id === id ? {
@@ -308,7 +308,7 @@ export default function InventoryList() {
     } else if (pendingAction.type === "delete") {
       try {
         if (!id.toString().startsWith("TEMP-")) {
-          await api.delete(`/inventory/items/${id}/`);
+          await api.delete(`/inventory/${id}/`);
         }
         setItems((prev) => prev.filter((it) => it.id !== pendingAction.id));
       } catch (err) {
@@ -396,10 +396,10 @@ export default function InventoryList() {
               + Add Item
             </button>
           )}
-          <input 
-            type="file" 
-            accept=".xlsx, .xls, .csv" 
-            className="hidden" 
+          <input
+            type="file"
+            accept=".xlsx, .xls, .csv"
+            className="hidden"
             ref={fileInputRef}
             onChange={handleImport}
           />
@@ -480,10 +480,9 @@ export default function InventoryList() {
                   className="border rounded-lg px-1 py-1 text-xs"
                 >
                   <option value="">All</option>
-                  <option value="good">Good</option>
-                  <option value="average">Average</option>
-                  <option value="poor">Poor</option>
-                  <option value="critical">Critical</option>
+                  <option value="in_stock">In Stock</option>
+                  <option value="low_stock">Low Stock</option>
+                  <option value="restocking">Restocking</option>
                 </select>
               </th>
               <th className="px-2 py-2">Actions</th>
@@ -588,10 +587,9 @@ export default function InventoryList() {
 
                       className="border rounded px-2 py-1 w-full"
                     >
-                      <option value="good">Good</option>
-                      <option value="average">Average</option>
-                      <option value="poor">Poor</option>
-                      <option value="critical">Critical</option>
+                      <option value="in_stock">In Stock</option>
+                      <option value="low_stock">Low Stock</option>
+                      <option value="restocking">Restocking</option>
                     </select>
                   ) : (
                     <span
@@ -804,14 +802,13 @@ export default function InventoryList() {
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Status</label>
                 <select
-                  value={items.find(it => it.id === editingRowId)?.status || "good"}
+                  value={items.find(it => it.id === editingRowId)?.status || "in_stock"}
                   onChange={(e) => handleFieldChange(editingRowId, "status", e.target.value)}
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
-                  <option value="good">Good</option>
-                  <option value="average">Average</option>
-                  <option value="poor">Poor</option>
-                  <option value="critical">Critical</option>
+                  <option value="in_stock">In Stock</option>
+                  <option value="low_stock">Low Stock</option>
+                  <option value="restocking">Restocking</option>
                 </select>
               </div>
             </div>
@@ -874,10 +871,9 @@ export default function InventoryList() {
                 <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Status</label>
                 <select value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
                   <option value="">All Statuses</option>
-                  <option value="good">Good</option>
-                  <option value="average">Average</option>
-                  <option value="poor">Poor</option>
-                  <option value="critical">Critical</option>
+                  <option value="in_stock">In Stock</option>
+                  <option value="low_stock">Low Stock</option>
+                  <option value="restocking">Restocking</option>
                 </select>
               </div>
 

@@ -59,21 +59,21 @@ export default function EquipmentCard() {
 
         {/* Status tags */}
         <div className="grid grid-cols-4 mt-4 gap-2">
-          <div className="flex flex-col items-center gap-1 text-green-700 px-1 py-1 text-sm font-semibold">
+          <div className="flex flex-col items-center gap-1 px-1 py-1 text-sm font-semibold">
             <span>{stats.loading ? "-" : stats.available}</span>
-            <span className="bg-green-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Available</span>
+            <span className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Available</span>
           </div>
-          <div className="flex flex-col items-center gap-1 text-yellow-600 px-1 py-1 text-sm font-semibold">
+          <div className="flex flex-col items-center gap-1 px-1 py-1 text-sm font-semibold">
             <span>{stats.loading ? "-" : stats.active}</span>
-            <span className="bg-yellow-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Active</span>
+            <span className="bg-blue-50 text-blue-700 border-blue-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Active</span>
           </div>
-          <div className="flex flex-col items-center gap-1 text-red-600 px-1 py-1 text-sm font-semibold">
+          <div className="flex flex-col items-center gap-1 px-1 py-1 text-sm font-semibold">
             <span>{stats.loading ? "-" : stats.repair}</span>
-            <span className="bg-red-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Repair</span>
+            <span className="bg-amber-50 text-amber-700 border-amber-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Repair</span>
           </div>
-          <div className="flex flex-col items-center gap-1 text-gray-700 px-1 py-1 text-sm font-semibold">
+          <div className="flex flex-col items-center gap-1 px-1 py-1 text-sm font-semibold">
             <span>{stats.loading ? "-" : stats.retired}</span>
-            <span className="bg-gray-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Retired</span>
+            <span className="bg-red-50 text-red-700 border-red-100 text-[10px] md:text-xs px-2 py-0.5 rounded-full">Retired</span>
           </div>
         </div>
       </div>

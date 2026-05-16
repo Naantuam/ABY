@@ -135,7 +135,7 @@ export default function ProjectList() {
     if (mode === 'add') {
       setCurrentProject({
         project_name: "", location: "", start_date: new Date().toISOString().slice(0, 10),
-        end_date: "", budget: "", status: "Active", owner: null, assigned_team: []
+        end_date: "", budget: "", status: "active", owner: null, assigned_team: []
       });
     } else {
       setCurrentProject({
@@ -169,6 +169,7 @@ export default function ProjectList() {
       }
       setIsModalOpen(false);
       fetchData();
+      window.dispatchEvent(new Event('projectDataChanged'));
     } catch (error) {
       console.error("Save failed", error);
       alert("Failed to save project.");
@@ -180,6 +181,7 @@ export default function ProjectList() {
     try {
       await api.delete(`/projects/${id}/`);
       setProjects(prev => prev.filter(p => p.id !== id));
+      window.dispatchEvent(new Event('projectDataChanged'));
     } catch (error) { alert("Could not delete project"); }
   }
 
@@ -215,7 +217,7 @@ export default function ProjectList() {
           budget: row["Budget"] || 0,
           owner: null,
           assigned_team: [],
-          status: row["Status"] || "Active",
+          status: row["Status"]?.toLowerCase() || "active",
           project_name: row["Project Name"] || "New Project",
           start_date: String(row["Start Date"]).split("T")[0] || new Date().toISOString().split("T")[0],
           end_date: row["End Date"] || "",
@@ -246,10 +248,11 @@ export default function ProjectList() {
 
   const formatCurrency = (val) => val ? `₦${Number(val).toLocaleString()}` : "₦0";
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Completed": return "bg-green-500 text-white";
-      case "Active": return "bg-blue-500 text-white";
-      case "Cancelled": return "bg-red-500 text-white";
+    switch (status?.toLowerCase()) {
+      case "completed": return "bg-green-500 text-white";
+      case "active": return "bg-blue-500 text-white";
+      case "cancelled": return "bg-red-500 text-white";
+      case "delayed": return "bg-yellow-500 text-white";
       default: return "bg-gray-400 text-white";
     }
   };
@@ -355,9 +358,10 @@ export default function ProjectList() {
                 <th className="px-4 py-3 w-32">
                   <select className="bg-transparent w-full outline-none" value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}>
                     <option value="">Status</option>
-                    <option>Active</option>
-                    <option>Completed</option>
-                    <option>Cancelled</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="delayed">Delayed</option>
                   </select>
                 </th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -391,7 +395,7 @@ export default function ProjectList() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(pr.status)}`}>{pr.status}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(pr.status)}`}>{pr.status?.charAt(0).toUpperCase() + pr.status?.slice(1)}</span>
                     </td>
                     <td className="px-4 py-3 text-right flex justify-end gap-2">
                       <button onClick={() => openModal(pr, 'view')} className="text-gray-400 hover:text-blue-600"><Eye className="w-4 h-4" /></button>
@@ -413,7 +417,7 @@ export default function ProjectList() {
                     <h3 className="text-sm font-bold text-gray-900">{pr.name}</h3>
                     <p className="text-xs text-gray-500">{pr.location}</p>
                   </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${getStatusColor(pr.status)}`}>{pr.status}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${getStatusColor(pr.status)}`}>{pr.status?.charAt(0).toUpperCase() + pr.status?.slice(1)}</span>
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-xs font-mono font-medium text-gray-700">{formatCurrency(pr.budget)}</span>
@@ -445,16 +449,16 @@ export default function ProjectList() {
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase mb-3 block">Status</label>
                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                  {["", "Active", "Completed", "Cancelled"].map(status => (
+                  {[{val: "", label: "All"}, {val: "active", label: "Active"}, {val: "completed", label: "Completed"}, {val: "cancelled", label: "Cancelled"}].map(status => (
                     <button
                       key={status}
-                      onClick={() => setFilters({ ...filters, status: status })}
-                      className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filters.status === status
+                      onClick={() => setFilters({ ...filters, status: status.val })}
+                      className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filters.status === status.val
                         ? "bg-blue-600 text-white border-blue-600"
                         : "bg-white text-gray-600 border-gray-200"
                         }`}
                     >
-                      {status || "All"}
+                      {status.label}
                     </button>
                   ))}
                 </div>
@@ -616,7 +620,10 @@ export default function ProjectList() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Status</label>
                     <select disabled={modalMode === 'view'} value={currentProject.status} onChange={e => setCurrentProject({ ...currentProject, status: e.target.value })} className="w-full border border-gray-300 rounded-lg p-2 mt-1 disabled:bg-gray-100">
-                      <option>Active</option><option>Completed</option><option>Cancelled</option><option>Delayed</option>
+                      <option value="active">Active</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="delayed">Delayed</option>
                     </select>
                   </div>
                 </div>
@@ -630,7 +637,7 @@ export default function ProjectList() {
                     {modalMode === 'view' ? <div className="p-3 bg-gray-50 rounded-lg border text-sm text-gray-700">{currentProject.owner?.username || "No Owner Assigned"}</div> : (
                       <select value={currentProject.owner?.id || currentProject.owner || ""} onChange={e => setCurrentProject({ ...currentProject, owner: allUsers.find(u => String(u.id) === e.target.value) })} className="w-full border border-gray-300 rounded-lg p-2 text-sm">
                         <option value="">Select Owner</option>
-                        {allUsers.map(user => <option key={user.id} value={user.id}>{user.username} ({user.email})</option>)}
+                        {allUsers.map(user => <option key={user.id} value={user.id}>{user.username} - {user.role?.name || "No Role"}</option>)}
                       </select>
                     )}
                   </div>
@@ -648,9 +655,9 @@ export default function ProjectList() {
                   </div>
                   {modalMode !== 'view' && (
                     <div className="flex gap-2">
-                      <select id="teamSelect" className="flex-1 border border-gray-300 rounded-lg p-2 text-xs">
+                      <select id="teamSelect" onChange={(e) => { if (e.target.value) { addTeamMember(e.target.value); e.target.value = ""; } }} className="flex-1 border border-gray-300 rounded-lg p-2 text-xs">
                         <option value="">Select Member...</option>
-                        {allUsers.map(user => <option key={user.id} value={user.id}>{user.username}</option>)}
+                        {allUsers.map(user => <option key={user.id} value={user.id}>{user.username} - {user.role?.name || "No Role"}</option>)}
                       </select>
                       <button type="button" onClick={() => { const select = document.getElementById("teamSelect"); if (select.value) { addTeamMember(select.value); select.value = ""; } }} className="bg-gray-900 text-white px-3 py-2 rounded-lg text-xs hover:bg-gray-800">Add</button>
                     </div>

@@ -35,6 +35,9 @@ export default function ProjectCard() {
     };
 
     fetchStats();
+
+    window.addEventListener('projectDataChanged', fetchStats);
+    return () => window.removeEventListener('projectDataChanged', fetchStats);
   }, []);
 
   return (

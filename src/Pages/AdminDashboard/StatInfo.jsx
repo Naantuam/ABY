@@ -27,7 +27,7 @@ export default function StatInfo() {
 
   // 4. NEW STATE FOR SAFETY STATS
   const [safetyStats, setSafetyStats] = useState({
-    total: 0, recent: 0, resolved: 0, investigating: 0, loading: true,
+    total: 0, reported: 0, resolved: 0, investigation: 0, loading: true,
   });
 
   // 5. STATE FOR INVENTORY STATS
@@ -64,11 +64,9 @@ export default function StatInfo() {
         const response = await api.get("/equipment/stats/");
         const data = response.data;
 
-        const total = data.total_equipment + data.active_equipment + data.repair_equipment + data.retired_equipment;
-
         setEquipmentStats({
-          total: total,
-          available: data.total_equipment,
+          total: data.total_equipment,
+          available: data.available_equipment,
           active: data.active_equipment,
           repair: data.repair_equipment,
           retired: data.retired_equipment,
@@ -105,8 +103,6 @@ export default function StatInfo() {
     }
     fetchProjectStats();
   }, []);
-
-  // --- NEW EFFECT FOR SAFETY STATS ---
   useEffect(() => {
     async function fetchSafetyStats() {
       try {
@@ -115,9 +111,9 @@ export default function StatInfo() {
 
         setSafetyStats({
           total: data.total_incidents,
-          recent: data.recent_incidents,
+          reported: data.reported_incidents,
           resolved: data.resolved_incidents,
-          investigating: data.investigating_incidents,
+          investigation: data.investigation_incidents,
           loading: false,
         });
       } catch (error) {
@@ -207,9 +203,9 @@ export default function StatInfo() {
           icon={ShieldExclamationIcon}
           href="/safety"
           badges={[
-            { label: "Recent", color: "blue", number: safetyStats.recent },
+            { label: "Reported", color: "red", number: safetyStats.reported },
+            { label: "Investigation", color: "yellow", number: safetyStats.investigation },
             { label: "Resolved", color: "green", number: safetyStats.resolved },
-            { label: "Investigation", color: "yellow", number: safetyStats.investigating },
           ]}
         />
 
