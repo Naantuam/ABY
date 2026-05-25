@@ -173,7 +173,7 @@ export default function StatInfo() {
           title="Equipments"
           count={equipmentStats.total}
           icon={Cog6ToothIcon}
-          href="/equipments"
+          href="/equipment"
           badges={[
             { label: "Available", color: "green", number: equipmentStats.available },
             { label: "Active", color: "blue", number: equipmentStats.active },
@@ -187,7 +187,7 @@ export default function StatInfo() {
           title="Projects"
           count={projectStats.total}
           icon={FolderIcon}
-          href="/projects"
+          href="/project"
           badges={[
             { label: "Completed", color: "green", number: projectStats.completed },
             { label: "Active", color: "blue", number: projectStats.active },
