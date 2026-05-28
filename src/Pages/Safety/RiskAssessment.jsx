@@ -304,35 +304,35 @@ export default function RiskList() {
                         {/* Date Filter Button */}
                         <th className="px-4 py-3 w-32">
                            <button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-100 px-2 py-1 rounded w-full text-left ${dateModalOpen || filters.date || filters.dateMin ? "text-blue-600 bg-blue-50" : ""}`}>
-                              {filters.date ? "Specific Date" : filters.dateMin ? "Date Range" : "Date"}
+                              {filters.date ? "SPECIFIC DATE" : filters.dateMin ? "DATE RANGE" : "DATE"}
                            </button>
                         </th>
 
                         <th className="px-4 py-3 w-40">
-                           <input placeholder="Project Name" className="bg-transparent w-full outline-none placeholder-gray-400"
+                           <input placeholder="PROJECT NAME" className="bg-transparent w-full outline-none placeholder-gray-400 font-bold uppercase"
                               value={filters.project} onChange={e => setFilters({ ...filters, project: e.target.value })}
                            />
                         </th>
 
-                        <th className="px-4 py-3 w-40">Hazard</th>
+                        <th className="px-4 py-3 w-40">HAZARD</th>
                         <th className="px-4 py-3 w-32">
-                           <select className="bg-transparent w-full outline-none cursor-pointer"
+                           <select className="bg-transparent w-full outline-none cursor-pointer font-bold uppercase"
                               value={filters.likelihood} onChange={e => setFilters({ ...filters, likelihood: e.target.value })}
                            >
-                              <option value="">Likelihood</option>
-                              {LIKELIHOOD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
+                              <option value="">LIKELIHOOD</option>
+                              {LIKELIHOOD_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.toUpperCase()}</option>)}
                            </select>
                         </th>
-                        <th className="px-4 py-3 w-32">Impact</th>
+                        <th className="px-4 py-3 w-32">IMPACT</th>
                         <th className="px-4 py-3 w-32">
-                           <select className="bg-transparent w-full outline-none cursor-pointer"
+                           <select className="bg-transparent w-full outline-none cursor-pointer font-bold uppercase"
                               value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}
                            >
-                              <option value="">Status</option>
-                              {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
+                              <option value="">STATUS</option>
+                              {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt.toUpperCase()}</option>)}
                            </select>
                         </th>
-                        <th className="px-4 py-3 w-20 text-right">Actions</th>
+                        <th className="px-4 py-3 w-20 text-right">ACTIONS</th>
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-sm">
