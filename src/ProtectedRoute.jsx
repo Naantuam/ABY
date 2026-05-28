@@ -26,10 +26,10 @@ const ProtectedRoute = ({ children, app }) => {
     }
 
     if (!user) return <Navigate to="/" replace />;
-    const userRole = roles?.find(r => r.id === user?.role);
+    const userRoleId = typeof user?.role === 'object' ? user?.role?.id : user?.role;
+    const userRole = roles?.find(r => r.id === userRoleId);
     const isAdmin = userRole?.name?.toLowerCase().includes('admin');
-
-    if (user.superuser || user.is_superuser || isAdmin) return children;
+    if (user.superuser || user.is_superuser || (isAdmin && app !== 'users')) return children;
     const userPermIds = userRole?.permissions || [];
 
     // Build a flat list of all permissions across all apps
@@ -43,14 +43,14 @@ const ProtectedRoute = ({ children, app }) => {
       if (dashPerm) {
         hasAccess = userPermIds.includes(dashPerm.id);
       }
+    } else if (app === 'users') {
+      // User Management: check for specific view_customuser, view_role, or view_rolemodulepermission permission
+      const allowedCodenames = ['view_customuser', 'view_role', 'view_rolemodulepermission'];
+      const usersPerms = allPerms.filter(p => allowedCodenames.includes(p.codename));
+      hasAccess = usersPerms.some(p => userPermIds.includes(p.id));
     } else {
       const modulePerms = appPermissions?.[app] || [];
-      const viewPerms = modulePerms.filter(p => p.codename && p.codename.includes('view'));
-      if (viewPerms.length > 0) {
-        hasAccess = viewPerms.some(p => userPermIds.includes(p.id));
-      } else {
-        hasAccess = modulePerms.some(perm => userPermIds.includes(perm.id));
-      }
+      hasAccess = modulePerms.some(perm => userPermIds.includes(perm.id));
     }
 
 

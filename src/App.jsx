@@ -29,10 +29,9 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
       <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
-      <Route path="/unauthorized" element={<Unauthorized />} />
-
       {/* Main Pages with Unified Layout */}
       <Route element={<Layout />}>
+        <Route path="/unauthorized" element={<Unauthorized />} />
         {/* Dashboard - "admin_only" for base access */}
         <Route path="/dashboard" element={<ProtectedRoute app="dashboard"><Dashboard /></ProtectedRoute>} />
 

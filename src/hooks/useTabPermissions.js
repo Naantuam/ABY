@@ -24,18 +24,18 @@ export function useTabPermission(modelName) {
     // Superuser always has access
     if (user.is_superuser || user.superuser) return true;
 
-    const userRole = roles?.find(r => r.id === user?.role?.id);
+    const userRoleId = typeof user?.role === 'object' ? user?.role?.id : user?.role;
+    const userRole = roles?.find(r => r.id === userRoleId);
     const userPermIds = userRole?.permissions || [];
 
     // Build flat permissions list
     const allPerms = Object.values(appPermissions || {}).flat();
 
-    // Find the view_<modelName> permission
-    const codename = `view_${modelName.toLowerCase()}`;
-    const perm = allPerms.find(p => p.codename === codename);
+    // Find all permissions matching the model name (e.g. view_operationrecord, add_operationrecord, etc.)
+    const modelPerms = allPerms.filter(p => p.codename && p.codename.includes(`_${modelName.toLowerCase()}`));
 
-    // If that permission doesn't exist in the system yet → fail-open
-    if (!perm) return true;
+    // If those permissions don't exist in the system yet → fail-open
+    if (modelPerms.length === 0) return true;
 
-    return userPermIds.includes(perm.id);
+    return modelPerms.some(p => userPermIds.includes(p.id));
 }

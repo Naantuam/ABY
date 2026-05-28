@@ -11,27 +11,26 @@ export function usePermissions(appName) {
     // Strict fallback if user is not loaded
     if (!user) return { canAdd: false, canEdit: false, canDelete: false, canView: false, isSuperuser: false };
     
-    const userRole = roles?.find(r => r.id === user?.role);
+    const userRoleId = typeof user?.role === 'object' ? user?.role?.id : user?.role;
+    const userRole = roles?.find(r => r.id === userRoleId);
     const isAdmin = userRole?.name?.toLowerCase().includes('admin');
 
-    // Superuser or Admin overrides everything
-    if (user.superuser || user.is_superuser || isAdmin) return { canAdd: true, canEdit: true, canDelete: true, canView: true, isSuperuser: true };
+    // Superuser or Admin overrides everything (except for 'users' module check)
+    if (user.superuser || user.is_superuser || (isAdmin && appName !== 'users')) return { canAdd: true, canEdit: true, canDelete: true, canView: true, isSuperuser: true };
 
     const userPermIds = userRole?.permissions || [];
     const modulePerms = appPermissions?.[appName] || [];
 
     // Helper to check if the user's role array includes the ID of the requested action's permission
     const hasPermission = (action) => {
+        if (action === 'view') {
+            return modulePerms.some(perm => userPermIds.includes(perm.id));
+        }
+
         // Find ALL permissions associated with action in this module
         const targetPerms = modulePerms.filter(p => p.codename && p.codename.includes(`${action}_`));
         if (targetPerms.length > 0) {
             return targetPerms.some(p => userPermIds.includes(p.id));
-        }
-        
-        // If checking for 'view' and specific view perm doesn't exist, generic fallback:
-        // Do they have ANY permission for this app?
-        if (action === 'view' && modulePerms.length > 0) {
-            return modulePerms.some(perm => userPermIds.includes(perm.id));
         }
         
         return false;

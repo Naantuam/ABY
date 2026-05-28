@@ -184,7 +184,10 @@ export default function RolesAndPermissions() {
       
       targetIdForLogs = targetId;
 
-      const formattedPermissions = editedRolePermissions.map(permId => {
+      const visiblePermIds = new Set(permissions.map(p => Number(p.id)));
+      const cleanPermissionsPayload = editedRolePermissions.filter(id => visiblePermIds.has(Number(id)));
+
+      const formattedPermissions = cleanPermissionsPayload.map(permId => {
         const fullPerm = permissions.find(p => p.id === permId);
         
         // Derive access_level from codename (e.g., 'change_user' -> 'edit')
@@ -204,7 +207,7 @@ export default function RolesAndPermissions() {
 
       const payload = {
         name: role.name, // Keep existing name
-        permissions: editedRolePermissions // Send list of IDs to match backend ManyToMany field
+        permissions: cleanPermissionsPayload // Send list of IDs to match backend ManyToMany field
       };
 
       console.group("🚀 [DEBUG FOR BACKEND: PAYLOAD SECURELY SENT]");
@@ -220,7 +223,7 @@ export default function RolesAndPermissions() {
 
       // Optimistically update the roles cache so the fallback works if GET 404s
       const updatedRoles = roles.map(r =>
-        r.id === targetId ? { ...r, permissions: editedRolePermissions } : r
+        r.id === targetId ? { ...r, permissions: cleanPermissionsPayload } : r
       );
       setRoles(updatedRoles);
 

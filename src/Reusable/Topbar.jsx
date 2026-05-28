@@ -8,7 +8,8 @@ import api from "../api"
 
 export default function TopBar({ sidebarOpen = true, setSidebarOpen = () => { }, user = null, roles = [], loadingAuth = true }) {
 
-  const roleObject = roles.find(r => r.id === user?.role);
+  const userRoleId = typeof user?.role === 'object' ? user?.role?.id : user?.role;
+  const roleObject = roles.find(r => r.id === userRoleId);
   // Give priority to superuser label
   const isAdmin = (user?.superuser || user?.is_superuser || (roleObject && roleObject.name?.toLowerCase().includes('admin')));
   const roleLabel = (user?.superuser || user?.is_superuser) ? "Admin"

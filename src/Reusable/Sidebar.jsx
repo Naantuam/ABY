@@ -34,10 +34,14 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
 
     const hasAccess = (itemApp) => {
         if (!user) return false;
+        if (user.superuser || user.is_superuser) return true;
+
         const roleName = userRole?.name?.toLowerCase() || '';
         const isAdmin = roleName.includes('admin');
 
-        if (user.superuser || user.is_superuser || isAdmin) return true;
+        // Restore isAdmin permissions bypass, EXCEPT for 'users' (User Management)
+        if (isAdmin && itemApp !== 'users') return true;
+
         const allPerms = Object.values(appPermissions).flat();
 
         // Dashboard specific check
@@ -49,23 +53,17 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
             return false; // If there's no dashPerm defined, fallback to false for safety
         }
 
+        // User Management specific check (must have permission to view customuser, role, or rolemodulepermission)
+        if (itemApp === 'users') {
+            const allowedCodenames = ['view_customuser', 'view_role', 'view_rolemodulepermission'];
+            const usersPerms = allPerms.filter(p => allowedCodenames.includes(p.codename));
+            return usersPerms.some(p => userPermIds.includes(p.id));
+        }
+
         // Feature modules dynamic check
         const permissionModule = itemApp === 'dashboard' ? 'users' : itemApp;
         const modulePerms = appPermissions?.[permissionModule] || [];
 
-        // 2. Dynamic Checking via RolesAndPermissions.jsx
-        // Find ALL specific "view" permissions for this module (exclude dashboard access perm)
-        const viewPerms = modulePerms.filter(perm => 
-            perm.codename && 
-            perm.codename.includes('view') && 
-            !perm.codename.includes('dashboardaccess')
-        );
-        
-        if (viewPerms.length > 0) {
-            return viewPerms.some(p => userPermIds.includes(p.id));
-        }
-
-        // Fallback: If no explicit 'view' perm is identified, check if they have any permission
         return modulePerms.some(perm => userPermIds.includes(perm.id));
     };
 
