@@ -273,27 +273,27 @@ export default function Employees() {
               <tr>
                 <th className="px-4 py-3 w-16">
                   <button onClick={() => setSnModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left flex justify-between items-center ${snModalOpen ? "bg-blue-50 border-blue-200 text-blue-600" : ""}`}>
-                    ID
+                    S/N
                   </button>
                 </th>
-                <th className="px-4 py-3 w-48"><input placeholder="Name" value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400 focus:placeholder-gray-300 transition-colors" /></th>
-                <th className="px-4 py-3 w-48"><input placeholder="Email" value={filters.email} onChange={(e) => setFilters({ ...filters, email: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400 focus:placeholder-gray-300" /></th>
-                <th className="px-4 py-3 w-32"><input placeholder="Phone" value={filters.phone} onChange={(e) => setFilters({ ...filters, phone: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400 focus:placeholder-gray-300" /></th>
+                <th className="px-4 py-3 w-48"><input placeholder="NAME" value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400 focus:placeholder-gray-300 transition-colors uppercase" /></th>
+                <th className="px-4 py-3 w-48"><input placeholder="EMAIL" value={filters.email} onChange={(e) => setFilters({ ...filters, email: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400 focus:placeholder-gray-300 uppercase" /></th>
+                <th className="px-4 py-3 w-32"><input placeholder="PHONE" value={filters.phone} onChange={(e) => setFilters({ ...filters, phone: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400 focus:placeholder-gray-300 uppercase" /></th>
                 <th className="px-4 py-3 w-32">
-                  <select value={filters.rank} onChange={(e) => setFilters({ ...filters, rank: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer">
-                    <option value="">Rank</option><option value="Administrator">Administrator</option><option value="Manager">Manager</option><option value="Staff">Staff</option>
+                  <select value={filters.rank} onChange={(e) => setFilters({ ...filters, rank: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer uppercase">
+                    <option value="">RANK</option><option value="Administrator">Administrator</option><option value="Manager">Manager</option><option value="Staff">Staff</option>
                   </select>
                 </th>
-                <th className="px-4 py-3 w-28"><button onClick={() => setAmountModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left flex justify-between items-center ${amountModalOpen ? "bg-blue-50 border-blue-200 text-blue-600" : ""}`}>Amount</button></th>
-                <th className="px-4 py-3 w-20 text-right">Actions</th>
+                <th className="px-4 py-3 w-28"><button onClick={() => setAmountModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left flex justify-between items-center ${amountModalOpen ? "bg-blue-50 border-blue-200 text-blue-600" : ""}`}>AMOUNT</button></th>
+                <th className="px-4 py-3 w-20 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
               {loading ? (
                 <tr><td colSpan={7} className="p-8 text-center text-gray-400"><Loader2 className="animate-spin w-6 h-6 mx-auto" /></td></tr>
-              ) : filteredEmployees.map((emp) => (
+              ) : filteredEmployees.map((emp, index) => (
                 <tr key={emp.id} onClick={(e) => { if (!e.target.closest("button") && !e.target.closest("input")) handleRowClick(emp); }} className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
-                  <td className="px-4 py-2.5 text-black font-mono">{emp.id}</td>
+                  <td className="px-4 py-2.5 text-black font-mono">{index + 1}</td>
                   <td className="px-4 py-2.5 font-medium text-black">
                     {editingRowId === emp.id ? (
                       <input className="border border-blue-400 rounded px-2 py-1 w-full bg-white" value={emp.name} onChange={(e) => handleFieldChange(emp.id, "name", e.target.value)} autoFocus />

@@ -525,25 +525,25 @@ export default function DailyProduction() {
             <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold tracking-wider border-b border-gray-200">
               <tr>
                 <th className="px-2 py-3 w-20"><button onClick={() => setSnModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${snModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>S/N</button></th>
-                <th className="px-2 py-3 w-32"><button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${dateModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Date</button></th>
-                <th className="px-1 py-3 w-24"><button onClick={() => setTrucksModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${trucksModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Trucks</button></th>
-                <th className="px-1 py-3 w-40"><button onClick={() => setQuantityModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${quantityModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Quantity</button></th>
-                <th className="px-1 py-3 w-40"><button onClick={() => setFederalModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${federalModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Federal</button></th>
-                <th className="px-1 py-3 w-40"><button onClick={() => setStateModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${stateModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>State</button></th>
-                <th className="px-2 py-3 w-32"><button onClick={() => setMouModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${mouModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>MoU</button></th>
-                <th className="px-2 py-3 w-32"><button onClick={() => setTotalModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${totalModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Total</button></th>
+                <th className="px-2 py-3 w-32"><button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${dateModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>DATE</button></th>
+                <th className="px-1 py-3 w-24"><button onClick={() => setTrucksModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${trucksModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>TRUCKS</button></th>
+                <th className="px-1 py-3 w-40"><button onClick={() => setQuantityModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${quantityModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>QUANTITY</button></th>
+                <th className="px-1 py-3 w-40"><button onClick={() => setFederalModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${federalModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>FEDERAL</button></th>
+                <th className="px-1 py-3 w-40"><button onClick={() => setStateModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${stateModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>STATE</button></th>
+                <th className="px-2 py-3 w-32"><button onClick={() => setMouModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${mouModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>MOU</button></th>
+                <th className="px-2 py-3 w-32"><button onClick={() => setTotalModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${totalModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>TOTAL</button></th>
                 <th className="px-2 py-3 w-32">
-                  <select value={filters.remarks} onChange={(e) => setFilters({ ...filters, remarks: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer">
-                    <option value="">Remarks</option><option value="Paid">Paid</option><option value="Nill">Nill</option>
+                  <select value={filters.remarks} onChange={(e) => setFilters({ ...filters, remarks: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer uppercase">
+                    <option value="">REMARKS</option><option value="Paid">Paid</option><option value="Nill">Nill</option>
                   </select>
                 </th>
-                <th className="px-1 py-3 w-20 text-right">Actions</th>
+                <th className="px-1 py-3 w-20 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
-              {visibleItems.map((item) => (
+              {visibleItems.map((item, index) => (
                 <tr key={item.id} className="hover:bg-blue-50/40 transition-colors">
-                  <td className="px-2 py-3 font-mono text-gray-600">#{item.id}</td>
+                  <td className="px-2 py-3 font-mono text-gray-600">{index + 1}</td>
                   <td className="px-2 py-3">
                     {editingRowId === item.id ? <input type="date" value={item.Date} onChange={(e) => handleFieldChange(item.id, "Date", e.target.value)} className="border rounded px-2 py-1 w-full text-xs" /> : item.Date}
                   </td>

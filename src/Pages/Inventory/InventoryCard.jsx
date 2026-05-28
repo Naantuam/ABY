@@ -24,8 +24,8 @@ export default function InventoryCard() {
       setStats({
         total: data.total_items || data.total_stock || 0,
         inStock: data.in_stock || 0,
-        restocking: Array.isArray(data.critical_items) ? data.critical_items.length : 0,
-        lowStock: Array.isArray(data.low_stock_alerts) ? data.low_stock_alerts.length : 0
+        restocking: data.restocking || 0,
+        lowStock: data.low_stock || 0
       });
     } catch (err) {
       console.error("❌ Failed to fetch inventory summary:", err);

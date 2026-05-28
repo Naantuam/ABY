@@ -436,10 +436,10 @@ export default function InventoryList() {
               <th className="px-1 py-1">
                 <input
                   type="text"
-                  placeholder="Item Name"
+                  placeholder="ITEM NAME"
                   value={filters.name}
                   onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-                  className="px-1 py-1 w-24 border rounded"
+                  className="px-1 py-1 w-24 border rounded uppercase"
                 />
               </th>
 
@@ -447,9 +447,9 @@ export default function InventoryList() {
                 <select
                   value={filters.category}
                   onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  className="border rounded-lg px-1 py-1 text-xs"
+                  className="border rounded-lg px-1 py-1 text-xs uppercase"
                 >
-                  <option value="">All Categories</option>
+                  <option value="">ALL CATEGORIES</option>
                   {/* Dynamically populate categories from items if possible, or static list */}
                   {Array.from(new Set(items.map((it) => it.category).filter(Boolean))).map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -457,8 +457,8 @@ export default function InventoryList() {
                 </select>
               </th>
 
-              <th className="px-2 py-2">Quantity</th>
-              <th className="px-2 py-2">Unit</th>
+              <th className="px-2 py-2">QUANTITY</th>
+              <th className="px-2 py-2">UNIT</th>
               {/* Last Updated filter button */}
               <th className="px-2 py-2">
                 <button
@@ -466,7 +466,7 @@ export default function InventoryList() {
                   className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${dateModalOpen ? "border-2 border-blue-500" : ""
                     }`}
                 >
-                  Last Updated
+                  LAST UPDATED
                 </button>
               </th>
 
@@ -477,25 +477,25 @@ export default function InventoryList() {
                   onChange={(e) =>
                     setFilters({ ...filters, status: e.target.value })
                   }
-                  className="border rounded-lg px-1 py-1 text-xs"
+                  className="border rounded-lg px-1 py-1 text-xs uppercase"
                 >
-                  <option value="">All</option>
+                  <option value="">ALL</option>
                   <option value="in_stock">In Stock</option>
                   <option value="low_stock">Low Stock</option>
                   <option value="restocking">Restocking</option>
                 </select>
               </th>
-              <th className="px-2 py-2">Actions</th>
+              <th className="px-2 py-2">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
-            {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((item) => (
+            {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((item, index) => (
               <tr
                 key={item.id}
                 className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
               >
                 {/* ID (non-editable) */}
-                <td className="px-2 py-2">{item.id}</td>
+                <td className="px-2 py-2">{index + 1}</td>
 
                 {/* Name */}
                 <td className="px-2 py-2">

@@ -442,18 +442,18 @@ export default function OperationList() {
                   className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${dateModalOpen ? "border-2 border-blue-500" : ""
                     }`}
                 >
-                  Date
+                  DATE
                 </button>
               </th>
               <th className="px-2 py-2">
                 <input
                   type="text"
-                  placeholder="Description"
+                  placeholder="DESCRIPTION"
                   value={filters.Description}
                   onChange={(e) =>
                     setFilters({ ...filters, Description: e.target.value })
                   }
-                  className="px-1 py-1 w-32 border rounded"
+                  className="px-1 py-1 w-32 border rounded uppercase"
                 />
               </th>
               {/* Cost modal button */}
@@ -463,7 +463,7 @@ export default function OperationList() {
                   className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${incomeModalOpen ? "border-2 border-blue-500" : ""
                     }`}
                 >
-                  Income
+                  INCOME
                 </button>
               </th>
               {/* Cost modal button */}
@@ -473,22 +473,22 @@ export default function OperationList() {
                   className={`hover:bg-gray-300 w-auto rounded-lg px-1 py-1 ${expenditureModalOpen ? "border-2 border-blue-500" : ""
                     }`}
                 >
-                  Expenditure
+                  EXPENDITURE
                 </button>
               </th>
-              <th className="px-2 py-2">Rate</th>
-              <th className="px-2 py-2">Balance</th>
-              <th className="px-2 py-2">Actions</th>
+              <th className="px-2 py-2">RATE</th>
+              <th className="px-2 py-2">BALANCE</th>
+              <th className="px-2 py-2">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
-            {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((item) => (
+            {[...filteredItems].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((item, index) => (
               <tr
                 key={item.id + item.Date}
                 className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
               >
                 {/* ID */}
-                <td className="px-2 py-2">{item.id}</td>
+                <td className="px-2 py-2">{index + 1}</td>
 
                 {/* Date */}
                 <td className="px-2 py-2">

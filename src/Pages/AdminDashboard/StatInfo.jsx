@@ -134,8 +134,8 @@ export default function StatInfo() {
         setInventoryStats({
           total: data.total_items || data.total_stock || 0,
           inStock: data.in_stock || 0,
-          restocking: Array.isArray(data.critical_items) ? data.critical_items.length : (data.critical_items || 0),
-          lowStock: Array.isArray(data.low_stock_alerts) ? data.low_stock_alerts.length : (data.low_stock || 0),
+          restocking: data.restocking || 0,
+          lowStock: data.low_stock || 0,
           loading: false,
         });
       } catch (error) {

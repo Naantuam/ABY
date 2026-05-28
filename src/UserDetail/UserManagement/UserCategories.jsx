@@ -402,21 +402,23 @@ export default function UserCategories() {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-50 text-gray-700 text-xs uppercase font-bold tracking-wider border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-2">Name</th>
-                    <th className="px-4 py-2">Email</th>
-                    <th className="px-4 py-2">Phone</th>
-                    <th className="px-4 py-2">Department</th>
-                    <th className="px-4 py-2 text-right"></th>
+                    <th className="px-4 py-2 w-16">S/N</th>
+                    <th className="px-4 py-2">NAME</th>
+                    <th className="px-4 py-2">EMAIL</th>
+                    <th className="px-4 py-2">PHONE</th>
+                    <th className="px-4 py-2">DEPARTMENT</th>
+                    <th className="px-4 py-2 text-right">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
                   {usersByCategory[selectedCategory.key]?.length > 0 ? (
-                    usersByCategory[selectedCategory.key].map((u) => (
+                    usersByCategory[selectedCategory.key].map((u, index) => (
                       <tr
                         key={u.id || u.email}
                         onClick={() => setSelectedUser(u)}
                         className="hover:bg-blue-50/40 cursor-pointer transition-colors group"
                       >
+                        <td className="px-4 py-2.5 text-black font-mono">{index + 1}</td>
                         <td className="px-4 py-2.5 font-medium text-black flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">
                             {u.username.charAt(0).toUpperCase()}
@@ -437,7 +439,7 @@ export default function UserCategories() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="px-4 py-8 text-center text-gray-600 italic">No users found.</td>
+                      <td colSpan="6" className="px-4 py-8 text-center text-gray-600 italic">No users found.</td>
                     </tr>
                   )}
                 </tbody>

@@ -323,25 +323,25 @@ export default function IncidentList() {
                 {/* ID Header */}
                 <th className="px-4 py-3 w-20">
                   <button onClick={() => setIdModalOpen(true)} className={`hover:bg-gray-100 w-full rounded px-2 py-1 text-left ${idModalOpen || filters.id || filters.idMin ? "text-blue-600 bg-blue-50" : ""}`}>
-                    {filters.id ? "ID Set" : "ID"}
+                    {filters.id ? "S/N SET" : "S/N"}
                   </button>
                 </th>
 
                 {/* Date Header */}
                 <th className="px-4 py-3 w-28">
                   <button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-100 w-full rounded px-2 py-1 text-left ${dateModalOpen || filters.date || filters.dateMin ? "text-blue-600 bg-blue-50" : ""}`}>
-                    {filters.date ? "Date Set" : "Date"}
+                    {filters.date ? "DATE SET" : "DATE"}
                   </button>
                 </th>
 
                 <th className="px-4 py-3">
-                  <input placeholder="Project Name" value={filters.project} onChange={(e) => setFilters({ ...filters, project: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400" />
+                  <input placeholder="PROJECT NAME" value={filters.project} onChange={(e) => setFilters({ ...filters, project: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400 uppercase" />
                 </th>
-                <th className="px-4 py-3 w-64">Description</th>
+                <th className="px-4 py-3 w-64">DESCRIPTION</th>
 
                 <th className="px-4 py-3 w-32">
-                  <select value={filters.severity} onChange={(e) => setFilters({ ...filters, severity: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer">
-                    <option value="">Severity</option>
+                  <select value={filters.severity} onChange={(e) => setFilters({ ...filters, severity: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer uppercase">
+                    <option value="">SEVERITY</option>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="critical">Critical</option>
@@ -349,14 +349,14 @@ export default function IncidentList() {
                 </th>
 
                 <th className="px-4 py-3 w-32">
-                  <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer">
-                    <option value="">Status</option>
+                  <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer uppercase">
+                    <option value="">STATUS</option>
                     <option value="reported">Reported</option>
                     <option value="investigation">Investigation</option>
                     <option value="resolved">Resolved</option>
                   </select>
                 </th>
-                <th className="px-4 py-3 w-20 text-right">Actions</th>
+                <th className="px-4 py-3 w-20 text-right">ACTIONS</th>
               </tr>
             </thead>
 
@@ -364,9 +364,9 @@ export default function IncidentList() {
               {loading ? (
                 <tr><td colSpan={7} className="p-8 text-center text-black">Loading incidents...</td></tr>
               ) : (
-                [...filteredIncidents].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((incident) => (
+                [...filteredIncidents].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((incident, index) => (
                   <tr key={incident.id} onClick={() => handleRowClick(incident)} className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
-                    <td className="px-4 py-3 font-mono text-black">#{incident.id}</td>
+                    <td className="px-4 py-3 font-mono text-black">{index + 1}</td>
                     <td className="px-4 py-3 text-black">{incident.incident_date}</td>
                     <td className="px-4 py-3 font-medium text-black">{incident.project}</td>
                     <td className="px-4 py-3 text-black truncate max-w-[200px]" title={incident.description}>

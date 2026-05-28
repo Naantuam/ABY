@@ -34,7 +34,7 @@ export default function Layout() {
                     const rawPerms6 = r.permissions || [];
                     const combined = [...rawPerms1, ...rawPerms2, ...rawPerms3, ...rawPerms4, ...rawPerms5, ...rawPerms6];
                     const parsedPermIds = Array.from(new Set(combined.map(p => {
-                        let val = typeof p === 'object' && p !== null ? (p.access_level || p.permission || p.permission_id || p.id) : p;
+                        let val = typeof p === 'object' && p !== null ? (p.permission || p.permission_id || p.id) : p;
                         return Number(val);
                     }).filter(id => !isNaN(id) && id !== 0 && id !== null)));
                     return { ...r, id: r.id ?? r.key, permissions: parsedPermIds };

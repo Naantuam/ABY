@@ -28,7 +28,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
         { name: 'Production', href: '/production', icon: ChartBarSquareIcon, app: 'production' },
     ];
 
-    const userRole = roles?.find(r => r.id === user?.role);
+    const userRoleId = typeof user?.role === 'object' ? user?.role?.id : user?.role;
+    const userRole = roles?.find(r => r.id === userRoleId);
     const userPermIds = userRole?.permissions || [];
 
     const hasAccess = (itemApp) => {
@@ -42,7 +43,10 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, user, roles, appP
         // Dashboard specific check
         if (itemApp === 'dashboard') {
             const dashPerm = allPerms.find(p => p.codename === 'view_dashboardaccess');
-            if (dashPerm && userPermIds.includes(dashPerm.id)) return true;
+            if (dashPerm) {
+                return userPermIds.includes(dashPerm.id);
+            }
+            return false; // If there's no dashPerm defined, fallback to false for safety
         }
 
         // Feature modules dynamic check

@@ -339,23 +339,23 @@ export default function EquipmentList() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold tracking-wider border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 w-16"><button onClick={() => setSnModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${snModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>ID</button></th>
-                <th className="px-4 py-3 w-38"><input placeholder="Name" value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400" /></th>
-                <th className="px-4 py-3 w-32"><select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer"><option value="">All Types</option><option value="Power Tools">Power Tools</option><option value="Heavy Machinery">Heavy Machinery</option></select></th>
-                <th className="px-4 py-3 w-28"><button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${dateModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Date</button></th>
-                <th className="px-4 py-3 w-28"><button onClick={() => setCostModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${costModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>Cost</button></th>
-                <th className="px-4 py-3 w-32"><select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer"><option value="">Status</option><option value="available">Available</option><option value="active">Active</option><option value="repair">Repair</option><option value="retired">Retired</option></select></th>
-                <th className="px-4 py-3 w-32">Assigned To</th>
-                <th className="px-4 py-3 w-20 text-right">Actions</th>
+                <th className="px-4 py-3 w-16"><button onClick={() => setSnModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${snModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>S/N</button></th>
+                <th className="px-4 py-3 w-38"><input placeholder="NAME" value={filters.name} onChange={(e) => setFilters({ ...filters, name: e.target.value })} className="bg-transparent w-full outline-none placeholder-gray-400 uppercase" /></th>
+                <th className="px-4 py-3 w-32"><select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer uppercase"><option value="">ALL TYPES</option><option value="Power Tools">Power Tools</option><option value="Heavy Machinery">Heavy Machinery</option></select></th>
+                <th className="px-4 py-3 w-28"><button onClick={() => setDateModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${dateModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>DATE</button></th>
+                <th className="px-4 py-3 w-28"><button onClick={() => setCostModalOpen(true)} className={`hover:bg-gray-200 w-full rounded px-1 py-1 text-left ${costModalOpen ? "bg-blue-50 text-blue-600" : ""}`}>COST</button></th>
+                <th className="px-4 py-3 w-32"><select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="bg-transparent w-full outline-none cursor-pointer uppercase"><option value="">STATUS</option><option value="available">Available</option><option value="active">Active</option><option value="repair">Repair</option><option value="retired">Retired</option></select></th>
+                <th className="px-4 py-3 w-32">ASSIGNED TO</th>
+                <th className="px-4 py-3 w-20 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
               {loading ? (
                 <tr><td colSpan={8} className="p-8 text-center text-gray-500">Loading...</td></tr>
               ) : (
-                [...filteredEquipment].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((eq) => (
+                [...filteredEquipment].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((eq, index) => (
                   <tr key={eq.id} onClick={() => setEditing(eq)} className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
-                    <td className="px-4 py-3 text-black font-mono">#{eq.id}</td>
+                    <td className="px-4 py-3 text-black font-mono">{index + 1}</td>
                     <td className="px-4 py-3 font-medium text-black">{eq.name}</td>
                     <td className="px-4 py-3 text-black">{eq.type}</td>
                     <td className="px-4 py-3 text-black">{eq.date}</td>
