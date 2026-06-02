@@ -255,7 +255,7 @@ export default function DailyProduction() {
   });
 
   // ✅ Then sort and slice for display
-  const sortedItems = [...items].sort((a, b) => Number(b.id) - Number(a.id));
+  const sortedItems = [...filteredItems].sort((a, b) => Number(b.id) - Number(a.id));
   const visibleItems = sortedItems.slice(0, visibleCount);
 
   // CSV export handler
@@ -543,7 +543,7 @@ export default function DailyProduction() {
             <tbody className="divide-y divide-gray-100 text-sm">
               {visibleItems.map((item, index) => (
                 <tr key={item.id} className="hover:bg-blue-50/40 transition-colors">
-                  <td className="px-2 py-3 font-mono text-gray-600">{index + 1}</td>
+                  <td className="px-2 py-3 font-mono text-gray-600">{filteredItems.length - index}</td>
                   <td className="px-2 py-3">
                     {editingRowId === item.id ? <input type="date" value={item.Date} onChange={(e) => handleFieldChange(item.id, "Date", e.target.value)} className="border rounded px-2 py-1 w-full text-xs" /> : item.Date}
                   </td>

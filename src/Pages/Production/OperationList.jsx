@@ -488,7 +488,7 @@ export default function OperationList() {
                 className="border-b hover:bg-gray-50 transition-colors text-xs sm:text-sm"
               >
                 {/* ID */}
-                <td className="px-2 py-2">{index + 1}</td>
+                <td className="px-2 py-2">{filteredItems.length - index}</td>
 
                 {/* Date */}
                 <td className="px-2 py-2">

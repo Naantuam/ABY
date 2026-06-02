@@ -291,9 +291,9 @@ export default function Employees() {
             <tbody className="divide-y divide-gray-100 text-sm">
               {loading ? (
                 <tr><td colSpan={7} className="p-8 text-center text-gray-400"><Loader2 className="animate-spin w-6 h-6 mx-auto" /></td></tr>
-              ) : filteredEmployees.map((emp, index) => (
+              ) : [...filteredEmployees].sort((a, b) => Number(b.id || 0) - Number(a.id || 0)).map((emp, index, arr) => (
                 <tr key={emp.id} onClick={(e) => { if (!e.target.closest("button") && !e.target.closest("input")) handleRowClick(emp); }} className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
-                  <td className="px-4 py-2.5 text-black font-mono">{index + 1}</td>
+                  <td className="px-4 py-2.5 text-black font-mono">{arr.length - index}</td>
                   <td className="px-4 py-2.5 font-medium text-black">
                     {editingRowId === emp.id ? (
                       <input className="border border-blue-400 rounded px-2 py-1 w-full bg-white" value={emp.name} onChange={(e) => handleFieldChange(emp.id, "name", e.target.value)} autoFocus />
@@ -350,7 +350,7 @@ export default function Employees() {
 
         {/* 📱 MOBILE LIST VIEW */}
         <div className="block sm:hidden divide-y divide-gray-100">
-          {loading ? <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div> : filteredEmployees.map((emp) => (
+          {loading ? <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div> : [...filteredEmployees].sort((a, b) => Number(b.id || 0) - Number(a.id || 0)).map((emp) => (
             <div key={emp.id} onClick={() => handleRowClick(emp)} className="p-4 active:bg-gray-50 cursor-pointer transition-colors">
               <div className="flex justify-between items-start mb-2">
                 <div>

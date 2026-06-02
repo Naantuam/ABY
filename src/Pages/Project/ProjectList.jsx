@@ -373,9 +373,9 @@ export default function ProjectList() {
               ) : filteredProjects.length === 0 ? (
                 <tr><td colSpan={9} className="p-6 text-center text-gray-500">No projects found.</td></tr>
               ) : (
-                filteredProjects.slice(0, visibleCount).map((pr) => (
+                [...filteredProjects].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((pr, index) => (
                   <tr key={pr.id} className="hover:bg-blue-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500">{pr.id}</td>
+                    <td className="px-4 py-3 text-gray-500">{filteredProjects.length - index}</td>
                     <td className="px-4 py-3 font-medium text-gray-900">{pr.name}</td>
                     <td className="px-4 py-3 text-gray-600">{pr.location}</td>
                     <td className="px-4 py-3 text-xs text-gray-500">
@@ -410,7 +410,7 @@ export default function ProjectList() {
 
           {/* 📱 MOBILE LIST VIEW */}
           <div className="block sm:hidden divide-y divide-gray-100">
-            {filteredProjects.slice(0, visibleCount).map((pr) => (
+            {[...filteredProjects].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((pr) => (
               <div key={pr.id} onClick={() => openModal(pr, 'view')} className="p-4 active:bg-gray-50 cursor-pointer">
                 <div className="flex justify-between items-start mb-2">
                   <div>

@@ -355,7 +355,7 @@ export default function EquipmentList() {
               ) : (
                 [...filteredEquipment].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((eq, index) => (
                   <tr key={eq.id} onClick={() => setEditing(eq)} className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
-                    <td className="px-4 py-3 text-black font-mono">{index + 1}</td>
+                    <td className="px-4 py-3 text-black font-mono">{filteredEquipment.length - index}</td>
                     <td className="px-4 py-3 font-medium text-black">{eq.name}</td>
                     <td className="px-4 py-3 text-black">{eq.type}</td>
                     <td className="px-4 py-3 text-black">{eq.date}</td>

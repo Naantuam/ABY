@@ -366,7 +366,7 @@ export default function IncidentList() {
               ) : (
                 [...filteredIncidents].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, visibleCount).map((incident, index) => (
                   <tr key={incident.id} onClick={() => handleRowClick(incident)} className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
-                    <td className="px-4 py-3 font-mono text-black">{index + 1}</td>
+                    <td className="px-4 py-3 font-mono text-black">{filteredIncidents.length - index}</td>
                     <td className="px-4 py-3 text-black">{incident.incident_date}</td>
                     <td className="px-4 py-3 font-medium text-black">{incident.project}</td>
                     <td className="px-4 py-3 text-black truncate max-w-[200px]" title={incident.description}>
