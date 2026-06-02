@@ -230,7 +230,7 @@ export default function ProjectList() {
       alert("Failed to import file.");
     } finally {
       if (fileInputRef.current) {
-         fileInputRef.current.value = "";
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -302,10 +302,10 @@ export default function ProjectList() {
       <div className="hidden lg:flex flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-xl font-bold text-gray-800">Projects Directory</h2>
         <div className="flex gap-2">
-          <input 
-            type="file" 
-            accept=".xlsx, .xls, .csv" 
-            className="hidden" 
+          <input
+            type="file"
+            accept=".xlsx, .xls, .csv"
+            className="hidden"
             ref={fileInputRef}
             onChange={handleImport}
           />
@@ -375,7 +375,7 @@ export default function ProjectList() {
               ) : (
                 filteredProjects.slice(0, visibleCount).map((pr) => (
                   <tr key={pr.id} className="hover:bg-blue-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500">#{pr.id}</td>
+                    <td className="px-4 py-3 text-gray-500">{pr.id}</td>
                     <td className="px-4 py-3 font-medium text-gray-900">{pr.name}</td>
                     <td className="px-4 py-3 text-gray-600">{pr.location}</td>
                     <td className="px-4 py-3 text-xs text-gray-500">
@@ -449,7 +449,7 @@ export default function ProjectList() {
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase mb-3 block">Status</label>
                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                  {[{val: "", label: "All"}, {val: "active", label: "Active"}, {val: "completed", label: "Completed"}, {val: "cancelled", label: "Cancelled"}].map(status => (
+                  {[{ val: "", label: "All" }, { val: "active", label: "Active" }, { val: "completed", label: "Completed" }, { val: "cancelled", label: "Cancelled" }].map(status => (
                     <button
                       key={status}
                       onClick={() => setFilters({ ...filters, status: status.val })}
