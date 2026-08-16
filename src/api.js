@@ -13,8 +13,6 @@ if (!BASE_URL.endsWith("/api")) {
   BASE_URL += "/api";
 }
 
-console.log("📡 API Base URL set to:", BASE_URL);
-
 // Create the axios instance
 const api = axios.create({
   baseURL: BASE_URL,
@@ -70,9 +68,6 @@ api.interceptors.response.use(
           throw new Error("No refresh token");
         }
 
-        console.log("🔄 Access token expired. Attempting refresh...");
-
-        // 🚀 THIS IS THE KEY PART YOU ASKED FOR
         // We use a clean 'axios' call (not 'api') to avoid circular interceptors
         const refreshResponse = await axios.post(`${BASE_URL}/auth/refresh/`, {
           refresh: refreshToken,
@@ -85,7 +80,6 @@ api.interceptors.response.use(
 
         // 2. Save it to local storage
         localStorage.setItem("access_token", newAccessToken);
-        console.log("✅ Token refreshed successfully!");
 
         // 3. Update the header of the failed request with the NEW token
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;

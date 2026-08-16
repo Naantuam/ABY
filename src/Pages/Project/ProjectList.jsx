@@ -206,7 +206,14 @@ export default function ProjectList() {
     if (!file) return;
 
     try {
-      const data = await importFromExcel(file);
+      const data = await importFromExcel(file, [
+        "^(project name|project|name)$",
+        "^location$",
+        "^(start date|date)$",
+        "^end date$",
+        "^budget$",
+        "^status$"
+      ]);
       const newProjects = data.map((row, index) => {
         return {
           id: `TEMP-${Date.now()}-${index}`,
@@ -304,7 +311,7 @@ export default function ProjectList() {
         <div className="flex gap-2">
           <input
             type="file"
-            accept=".xlsx, .xls, .csv"
+            accept=".xlsx, .xls"
             className="hidden"
             ref={fileInputRef}
             onChange={handleImport}

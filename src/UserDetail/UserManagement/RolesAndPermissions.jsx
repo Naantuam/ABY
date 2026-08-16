@@ -147,10 +147,7 @@ export default function RolesAndPermissions() {
   };
 
   const handleSave = async () => {
-    console.log("💾 Save button clicked. Selected Role ID (Key):", selectedRoleId);
-
     if (selectedRoleId === null || selectedRoleId === undefined) {
-      console.warn("⚠️ No role selected. Aborting save.");
       alert("Please select a role first.");
       return;
     }
@@ -159,7 +156,6 @@ export default function RolesAndPermissions() {
     let targetIdForLogs = selectedRoleId;
     try {
       const role = roles.find(r => r.id === selectedRoleId);
-      console.log("🔍 Found role object:", role);
 
       if (!role) {
         throw new Error(`Role with ID ${selectedRoleId} not found in local state.`);
@@ -169,7 +165,6 @@ export default function RolesAndPermissions() {
 
       // 🕵️ Fallback ID Resolution
       try {
-        console.log(`🕵️ verifying role ID details for Key: ${selectedRoleId}...`);
         const detailRes = await api.get(`/users/roles/${selectedRoleId}/`);
         const detailData = detailRes.data;
         
@@ -209,17 +204,8 @@ export default function RolesAndPermissions() {
         name: role.name, // Keep existing name
         permissions: cleanPermissionsPayload // Send list of IDs to match backend ManyToMany field
       };
-
-      console.group("🚀 [DEBUG FOR BACKEND: PAYLOAD SECURELY SENT]");
-      console.log(`Sending PUT request to: /users/roles/${targetId}/`);
-      console.log(`Total permissions sent: ${formattedPermissions.length}`);
-      console.log(JSON.stringify(payload.permissions, null, 2));
-      console.groupEnd();
-
       // PUT /api/users/roles/<id>/update/
       await api.put(`/users/roles/${targetId}/`, payload);
-
-      console.log("✅ Save success!");
 
       // Optimistically update the roles cache so the fallback works if GET 404s
       const updatedRoles = roles.map(r =>

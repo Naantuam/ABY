@@ -58,7 +58,6 @@ export default function InventoryList() {
       setLoading(true);
       const response = await api.get("/inventory/items/");
       const data = response.data;
-      console.log("📦 Inventory Data received:", data);
 
       const arr = Array.isArray(data) ? data : (data.results || []);
 
@@ -175,7 +174,14 @@ export default function InventoryList() {
     if (!file) return;
 
     try {
-      const data = await importFromExcel(file);
+      const data = await importFromExcel(file, [
+        "^(item name|name)$",
+        "^category$",
+        "^quantity$",
+        "^unit$",
+        "^(last updated|updated)$",
+        "^status$"
+      ]);
       const newItems = data.map((row, index) => {
         return {
           id: `TEMP-${Date.now()}-${index}`,
@@ -191,7 +197,7 @@ export default function InventoryList() {
       setItems(prev => [...newItems, ...prev]);
     } catch (err) {
       console.error("Import error:", err);
-      alert("Failed to import file.");
+      alert(err.message || "Failed to import file.");
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -250,7 +256,6 @@ export default function InventoryList() {
       if (!item) return;
 
       // Map to backend fields
-      // Map to backend fields
       const payload = {
         item_name: item.name || "Unnamed Item",
         category: item.category || "Uncategorized",
@@ -258,8 +263,6 @@ export default function InventoryList() {
         unit: item.unit || "pcs",
         status: item.status || "in_stock"
       };
-
-      console.log("📤 Sending Inventory Payload:", payload);
 
       try {
         const isTemp = id.toString().startsWith("TEMP-");
@@ -398,7 +401,7 @@ export default function InventoryList() {
           )}
           <input
             type="file"
-            accept=".xlsx, .xls, .csv"
+            accept=".xlsx, .xls"
             className="hidden"
             ref={fileInputRef}
             onChange={handleImport}

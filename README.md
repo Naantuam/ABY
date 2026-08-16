@@ -1,12 +1,26 @@
-# React + Vite
+# ABY Smart System: Enterprise ERP Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The **ABY Smart System** (Devv) is a sophisticated Enterprise Resource Planning (ERP) dashboard designed for industrial and operational management. This project demonstrates the ability to build and organize a massive, multi-module frontend application with a focus on data visualization and administrative control.
 
-Currently, two official plugins are available:
+## 📊 Feature-Rich Dashboards
+- **Inventory Management:** Real-time tracking of assets and supplies.
+- **Production Monitoring:** Visualizing operational throughput and efficiency.
+- **Safety & Compliance:** Dedicated modules for tracking site safety and regulatory standards.
+- **Equipment Tracking:** Managing industrial machinery lifecycle and maintenance.
+- **Project Management:** High-level overview of active organizational projects.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🛠️ Frontend Architecture
+- **Modular Design:** Each department has a dedicated, isolated dashboard module for maximum scalability.
+- **Unified Layout:** A persistent navigation and header system for a seamless user experience across modules.
+- **Security-First UI:** Advanced authentication flows including MFA, Password Recovery, and Account Activation.
+- **Dynamic Routing:** Utilizing `react-router-dom` for complex nested navigation and route protection.
 
-## Expanding the ESLint configuration
+## 💻 Tech Stack
+- **React 18:** Component-based UI logic.
+- **Vite:** Next-gen frontend tooling.
+- **Tailwind CSS:** Advanced responsive styling.
+- **Vercel:** Deployment-ready configuration.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🚀 Getting Started
+1. `npm install`
+2. `npm run dev`

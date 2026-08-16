@@ -75,7 +75,14 @@ export default function RiskList() {
       if (!file) return;
 
       try {
-         const data = await importFromExcel(file);
+         const data = await importFromExcel(file, [
+            "^(assessment date|date)$",
+            "^(project name|project)$",
+            "^(hazard type|hazard)$",
+            "^likelihood$",
+            "^impact$",
+            "^status$"
+         ]);
          const newRisks = data.map((row, index) => {
             return {
                id: `TEMP-${Date.now()}-${index}`,
@@ -94,7 +101,7 @@ export default function RiskList() {
          setRisks(prev => [...newRisks, ...prev]);
       } catch (err) {
          console.error("Import error:", err);
-         alert("Failed to import file.");
+         alert(err.message || "Failed to import file.");
       } finally {
          if (fileInputRef.current) {
             fileInputRef.current.value = "";
@@ -279,7 +286,7 @@ export default function RiskList() {
             <div className="flex gap-2">
                <input
                   type="file"
-                  accept=".xlsx, .xls, .csv"
+                  accept=".xlsx, .xls"
                   className="hidden"
                   ref={fileInputRef}
                   onChange={handleImport}

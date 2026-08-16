@@ -22,5 +22,3 @@ const groupedPermissions = permissions.reduce((acc, perm) => {
   acc[groupName].push(perm);
   return acc;
 }, {});
-
-console.log(groupedPermissions);

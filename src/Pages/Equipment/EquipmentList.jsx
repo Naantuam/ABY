@@ -189,7 +189,14 @@ export default function EquipmentList() {
     if (!file) return;
 
     try {
-      const data = await importFromExcel(file);
+      const data = await importFromExcel(file, [
+        "^name$",
+        "^type$",
+        "^(purchase date|date)$",
+        "^(serial number|serial)$",
+        "^cost$",
+        "^status$"
+      ]);
       const newItems = data.map((row, index) => {
         return {
           id: `TEMP-${Date.now()}-${index}`,
@@ -207,7 +214,7 @@ export default function EquipmentList() {
       setEquipment(prev => [...newItems, ...prev]);
     } catch (err) {
       console.error("Import error:", err);
-      alert("Failed to import file.");
+      alert(err.message || "Failed to import file.");
     } finally {
       if (fileInputRef.current) {
          fileInputRef.current.value = "";
@@ -321,7 +328,7 @@ export default function EquipmentList() {
         <div className="flex gap-2">
           <input 
             type="file" 
-            accept=".xlsx, .xls, .csv" 
+            accept=".xlsx, .xls" 
             className="hidden" 
             ref={fileInputRef}
             onChange={handleImport}

@@ -195,7 +195,15 @@ export default function MaintenanceList() {
     if (!file) return;
 
     try {
-      const data = await importFromExcel(file);
+      const data = await importFromExcel(file, [
+        "^date$",
+        "^description$",
+        "^quantity$",
+        "^income$",
+        "^expenditure$",
+        "^rate$",
+        "^(balance|bal)$"
+      ]);
       const newItems = data.map((row, index) => {
         const income = Number(row["Income"]) || 0;
         const expenditure = Number(row["Expenditure"]) || 0;
@@ -214,7 +222,7 @@ export default function MaintenanceList() {
       setItems(prev => [...newItems, ...prev]);
     } catch (err) {
       console.error("Import error:", err);
-      alert("Failed to import file.");
+      alert(err.message || "Failed to import file.");
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -410,7 +418,7 @@ export default function MaintenanceList() {
           )}
           <input
             type="file"
-            accept=".xlsx, .xls, .csv"
+            accept=".xlsx, .xls"
             className="hidden"
             ref={fileInputRef}
             onChange={handleImport}

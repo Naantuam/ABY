@@ -100,7 +100,6 @@ export default function RecentActivity() {
     const fetchActivities = async () => {
       try {
         const response = await api.get("/dashboard/activity/recent/");
-        console.log("📜 Raw Activity Response:", response.data);
 
         const mappedActivities = response.data
           .map(item => {

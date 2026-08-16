@@ -79,8 +79,6 @@ export default function UserCategories() {
         }
       }
 
-      console.log(`Fetched ${allUsers.length} users from /users/`);
-
       // Group users by role, and collect unassigned users
       const groupedUsers = rolesList.reduce((acc, category) => {
         acc[category.key] = allUsers.filter((user) => {
@@ -127,7 +125,12 @@ export default function UserCategories() {
     if (!file || !selectedCategory) return;
 
     try {
-      const data = await importFromExcel(file);
+      const data = await importFromExcel(file, [
+        "^(name|username)$",
+        "^email$",
+        "^(phone|phone number)$",
+        "^department$"
+      ]);
       const newItems = data.map((row, index) => {
         return {
           id: `TEMP-${Date.now()}-${index}`,
@@ -145,7 +148,7 @@ export default function UserCategories() {
       }));
     } catch (err) {
       console.error("Import error:", err);
-      alert("Failed to import file.");
+      alert(err.message || "Failed to import file.");
     } finally {
       if (fileInputRef.current) {
          fileInputRef.current.value = "";
@@ -374,7 +377,7 @@ export default function UserCategories() {
             <div className="flex gap-2">
               <input 
                 type="file" 
-                accept=".xlsx, .xls, .csv" 
+                accept=".xlsx, .xls" 
                 className="hidden" 
                 ref={fileInputRef}
                 onChange={handleImport}

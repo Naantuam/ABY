@@ -283,7 +283,16 @@ export default function DailyProduction() {
     if (!file) return;
 
     try {
-      const data = await importFromExcel(file);
+      const data = await importFromExcel(file, [
+        "^date$",
+        "^trucks$",
+        "^quantity$",
+        "^(federal royalty|federal)$",
+        "^(state haulage|state)$",
+        "^mou$",
+        "^total$",
+        "^remarks$"
+      ]);
       const newItems = data.map((row, index) => {
         const trucks = row["Trucks"] || 0;
         const derived = computeDerived(trucks);
@@ -304,7 +313,7 @@ export default function DailyProduction() {
       setItems(prev => [...newItems, ...prev]);
     } catch (err) {
       console.error("Import error:", err);
-      alert("Failed to import file.");
+      alert(err.message || "Failed to import file.");
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -506,7 +515,7 @@ export default function DailyProduction() {
         <div className="flex gap-2">
           <input
             type="file"
-            accept=".xlsx, .xls, .csv"
+            accept=".xlsx, .xls"
             className="hidden"
             ref={fileInputRef}
             onChange={handleImport}

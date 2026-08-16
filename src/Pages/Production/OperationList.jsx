@@ -179,7 +179,14 @@ export default function OperationList() {
     if (!file) return;
 
     try {
-      const data = await importFromExcel(file);
+      const data = await importFromExcel(file, [
+        "^date$",
+        "^description$",
+        "^income$",
+        "^expenditure$",
+        "^rate$",
+        "^(balance|bal)$"
+      ]);
       const newItems = data.map((row, index) => {
         return {
           id: `TEMP-${Date.now()}-${index}`,
@@ -195,7 +202,7 @@ export default function OperationList() {
       setItems(prev => [...newItems, ...prev]);
     } catch (err) {
       console.error("Import error:", err);
-      alert("Failed to import file.");
+      alert(err.message || "Failed to import file.");
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -396,7 +403,7 @@ export default function OperationList() {
             )}
             <input
               type="file"
-              accept=".xlsx, .xls, .csv"
+              accept=".xlsx, .xls"
               className="hidden"
               ref={fileInputRef}
               onChange={handleImport}
